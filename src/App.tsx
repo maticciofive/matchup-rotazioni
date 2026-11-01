@@ -19,7 +19,7 @@ import {
 } from './engine/matchup';
 import { CourtView } from './components/CourtView';
 import { MatchupSummary } from './components/MatchupSummary';
-import { RotationSequence } from './components/RotationSequence';
+import { RotationSequenceFull } from './components/RotationSequenceFull';
 import type { ValidationError, TeamRotation, Matchup, CompleteMatchup } from './types';
 
 type TabId = 'teams' | 'set' | 'tactical' | 'matchup' | 'sequence' | 'sequence-full' | 'simulation' | 'matrix' | 'print';
@@ -1882,7 +1882,7 @@ function SequenceFullView({ data }: { data: AnalysisData }) {
         </div>
       </div>
 
-      <RotationSequence
+      <RotationSequenceFull
         teamA={teamA}
         teamB={teamB}
         assignmentsA={assignmentsA}
