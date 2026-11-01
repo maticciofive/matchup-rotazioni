@@ -1,7 +1,7 @@
 import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Zone, Player } from '../types';
 import { DualCourtView } from './DualCourtView';
 import { MatchupSummaryDetailed } from './MatchupSummaryDetailed';
-import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
+import { getPlayerById, ATTACK_TO_BLOCK_ZONES, getCenterBlockerInRotation } from '../engine/matchup';
 import { generateTheoreticalSequence, type SequenceState } from '../engine/rotations';
 
 interface RotationSequenceFullProps {
@@ -65,12 +65,16 @@ export function RotationSequenceFull({
 
         // Trova i muratori di B
         const blockZones = ATTACK_TO_BLOCK_ZONES[zone as Zone];
+        
+        // Trova il centrale in prima linea nella squadra B
+        const centerBlockerB = getCenterBlockerInRotation(teamB, assignmentB, state.rotationB);
+        
         blockZones.forEach(blockZone => {
           let blockers: Player[] = [];
           
           if (blockZone === 3) {
-            // Centro: sempre centrali
-            blockers = teamB.roster.filter(p => p.role === 'C' && p.id !== teamB.liberoId);
+            // Centro: Solo il centrale in prima linea in questa rotazione
+            blockers = centerBlockerB ? [centerBlockerB] : [];
           } else if (phaseB === 'BP') {
             // BP: muro per ruolo
             if (blockZone === 2) {
@@ -119,12 +123,16 @@ export function RotationSequenceFull({
 
         // Trova i muratori di A
         const blockZones = ATTACK_TO_BLOCK_ZONES[zone as Zone];
+        
+        // Trova il centrale in prima linea nella squadra A
+        const centerBlockerA = getCenterBlockerInRotation(teamA, assignmentA, state.rotationA);
+        
         blockZones.forEach(blockZone => {
           let blockers: Player[] = [];
           
           if (blockZone === 3) {
-            // Centro: sempre centrali
-            blockers = teamA.roster.filter(p => p.role === 'C' && p.id !== teamA.liberoId);
+            // Centro: Solo il centrale in prima linea in questa rotazione
+            blockers = centerBlockerA ? [centerBlockerA] : [];
           } else if (phaseA === 'BP') {
             // BP: muro per ruolo
             if (blockZone === 2) {

@@ -1,4 +1,4 @@
-import { Player, Zone, ZoneAssignment, Team, TeamRotation, Matchup } from '../types';
+import { Player, Zone, ZoneAssignment, Team, TeamRotation, Matchup, RotationLabel } from '../types';
 
 /**
  * Regola geometrica della pallavolo:
@@ -91,20 +91,47 @@ export function calculateMatchups(
 }
 
 /**
+ * Trova quale centrale è in prima linea in una specifica rotazione
+ * C2 è in prima linea in P2, P1, P6
+ * C1 è in prima linea in P5, P4, P3
+ */
+export function getCenterBlockerInRotation(
+  team: Team,
+  assignment: ZoneAssignment,
+  rotation: RotationLabel
+): Player | null {
+  // Trova tutti i centrali nel roster
+  const centers = team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
+  
+  // Trova quale centrale è in prima linea (zone 2, 3, 4)
+  const frontRowZones: Zone[] = [2, 3, 4];
+  for (const zone of frontRowZones) {
+    const playerId = assignment[zone];
+    const player = getPlayerById(team, playerId);
+    if (player && player.role === 'C') {
+      return player;
+    }
+  }
+  
+  // Fallback: ritorna il primo centrale
+  return centers[0] || null;
+}
+
+/**
  * Calcola i matchup completi con TUTTI i muratori possibili
  * 
  * Regola del muro basata sulla fase di gioco e sulla rotazione:
  * 
  * FASE BREAK POINT (BP) - Muro per RUOLO:
  * - Posto 2: Opposti (OPP) + Palleggiatori (P)
- * - Posto 3: Centrali (C) - SEMPRE
+ * - Posto 3: Centrale in prima linea in quella rotazione
  * - Posto 4: Schiacciatori (S)
  * 
  * FASE RICEZIONE PUNTO (RP):
  * - P1: Muro per POSIZIONE DI ROTAZIONE (chi si trova in quella zona mura lì)
  * - P2-P6: Muro per RUOLO (come in BP)
  *   - Posto 2: Opposti (OPP) + Palleggiatori (P)
- *   - Posto 3: Centrali (C) - SEMPRE
+ *   - Posto 3: Centrale in prima linea in quella rotazione
  *   - Posto 4: Schiacciatori (S)
  * 
  * @param attackingTeamRotation - Rotazione della squadra in attacco
@@ -123,6 +150,13 @@ export function calculateCompleteMatchups(
 }> {
   const attackZones: Zone[] = [4, 3, 2];
   
+  // Trova il centrale in prima linea nella squadra difendente
+  const centerBlocker = getCenterBlockerInRotation(
+    defendingTeamRotation.team,
+    defendingTeamRotation.assignment,
+    defendingTeamRotation.rotation
+  );
+  
   return attackZones.map(attackZone => {
     const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone];
     
@@ -131,16 +165,12 @@ export function calculateCompleteMatchups(
     const attacker = getPlayerById(attackingTeamRotation.team, attackerId);
     
     // Muratori: per ogni zona di muro, trova i giocatori in base alla fase e rotazione
-    // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
     const blockers = blockZones.map(blockZone => {
       let players: Player[];
       
       if (blockZone === 3) {
-        // CENTRO: SEMPRE centrali (indipendentemente dalla fase e rotazione)
-        // I centrali attaccano e murano sempre dal centro
-        players = defendingTeamRotation.team.roster.filter(
-          p => p.role === 'C' && p.id !== defendingTeamRotation.team.liberoId
-        );
+        // CENTRO: Solo il centrale in prima linea in questa rotazione
+        players = centerBlocker ? [centerBlocker] : [];
       } else if (defendingTeamRotation.phase === 'BP') {
         // FASE BREAK POINT: muro per RUOLO
         if (blockZone === 2) {

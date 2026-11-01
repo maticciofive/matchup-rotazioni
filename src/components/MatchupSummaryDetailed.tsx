@@ -1,5 +1,5 @@
 import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Zone, Player } from '../types';
-import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
+import { getPlayerById, ATTACK_TO_BLOCK_ZONES, getCenterBlockerInRotation } from '../engine/matchup';
 
 interface MatchupSummaryProps {
   teamA: Team;
@@ -27,8 +27,9 @@ export function MatchupSummaryDetailed({
     rotation: RotationLabel
   ): Player[] => {
     if (blockZone === 3) {
-      // Centro: SEMPRE centrali
-      return defendTeam.roster.filter(p => p.role === 'C' && p.id !== defendTeam.liberoId);
+      // Centro: Solo il centrale in prima linea in questa rotazione
+      const centerBlocker = getCenterBlockerInRotation(defendTeam, defendAssignment, rotation);
+      return centerBlocker ? [centerBlocker] : [];
     } else if (phase === 'BP') {
       // BP: muro per ruolo
       if (blockZone === 2) {
