@@ -1,7 +1,7 @@
 // === Data Model Types ===
 
 export type Role = 'P' | 'OPP' | 'S' | 'C' | 'L';
-export type TacticalLabel = 'S1' | 'S2' | 'C1' | 'C2' | '';
+export type TacticalLabel = 'S1' | 'S2' | 'S3' | 'S4' | 'C1' | 'C2' | '';
 export type Zone = 1 | 2 | 3 | 4 | 5 | 6;
 export type RotationLabel = 'P1' | 'P6' | 'P5' | 'P4' | 'P3' | 'P2';
 
@@ -68,7 +68,7 @@ export interface Matchup {
 export interface CompleteMatchup {
   attackZone: Zone;
   attacker: Player | null;
-  blockers: Array<{ zone: Zone; player: Player | null }>;
+  blockers: Array<{ zone: Zone; players: Player[] }>;
   attackTeamName: string;
   blockTeamName: string;
 }

@@ -141,17 +141,22 @@ function MatchupCard({ matchup, attackColor, blockColor }: MatchupCardProps) {
           <div className="text-xs font-bold mb-2" style={{ color: blockColor }}>
             MURO ({matchup.blockers.length === 1 ? 'Z' : 'Z'}{matchup.blockers.map(b => b.zone).join(' + Z')})
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {matchup.blockers.map((blocker, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                {blocker.player ? (
-                  <>
-                    <div className="font-bold text-sm">{blocker.player.number}</div>
-                    <div className="text-sm text-gray-700 flex-1">{blocker.player.name}</div>
-                    <div className="text-xs text-gray-500">({blocker.player.role})</div>
-                  </>
+              <div key={idx} className="border-l-2 border-gray-300 pl-2">
+                <div className="text-xs font-semibold text-gray-600 mb-1">Z{blocker.zone}:</div>
+                {blocker.players.length > 0 ? (
+                  <div className="space-y-1">
+                    {blocker.players.map((player, pIdx) => (
+                      <div key={pIdx} className="flex items-center gap-2">
+                        <div className="font-bold text-sm">{player.number}</div>
+                        <div className="text-sm text-gray-700 flex-1">{player.name}</div>
+                        <div className="text-xs text-gray-500">({player.role})</div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  <div className="text-gray-400 text-sm">Z{blocker.zone}: Vuoto</div>
+                  <div className="text-gray-400 text-sm">Nessun giocatore disponibile</div>
                 )}
               </div>
             ))}

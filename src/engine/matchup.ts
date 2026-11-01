@@ -91,11 +91,17 @@ export function calculateMatchups(
 }
 
 /**
- * Calcola i matchup completi con TUTTI i muratori
+ * Calcola i matchup completi con TUTTI i muratori possibili
+ * 
+ * Regola: per ogni posizione di muro, mostra TUTTI i giocatori che possono
+ * fare muro in quella posizione (basato sul ruolo), non solo quello in rotazione
+ * 
+ * - Posto 2 e 4: tutti gli schiacciatori (S)
+ * - Posto 3 (centro): tutti i centrali (C)
  * 
  * @param attackingTeamRotation - Rotazione della squadra in attacco
  * @param defendingTeamRotation - Rotazione della squadra in difesa (muro)
- * @returns Array di 3 matchup completi con tutti i muratori
+ * @returns Array di 3 matchup completi con tutti i muratori possibili
  */
 export function calculateCompleteMatchups(
   attackingTeamRotation: TeamRotation,
@@ -103,7 +109,7 @@ export function calculateCompleteMatchups(
 ): Array<{
   attackZone: Zone;
   attacker: Player | null;
-  blockers: Array<{ zone: Zone; player: Player | null }>;
+  blockers: Array<{ zone: Zone; players: Player[] }>;
   attackTeamName: string;
   blockTeamName: string;
 }> {
@@ -116,11 +122,20 @@ export function calculateCompleteMatchups(
     const attackerId = attackingTeamRotation.assignment[attackZone];
     const attacker = getPlayerById(attackingTeamRotation.team, attackerId);
     
-    // Muratori: giocatori nelle zone di muro della squadra in difesa
+    // Muratori: per ogni zona di muro, trova TUTTI i giocatori che possono fare muro
+    // basandosi sul ruolo (S per posti 2 e 4, C per posto 3)
     const blockers = blockZones.map(blockZone => {
-      const blockerId = defendingTeamRotation.assignment[blockZone];
-      const player = getPlayerById(defendingTeamRotation.team, blockerId);
-      return { zone: blockZone, player };
+      let players: Player[];
+      
+      if (blockZone === 3) {
+        // Centro: tutti i centrali
+        players = defendingTeamRotation.team.roster.filter(p => p.role === 'C' && p.id !== defendingTeamRotation.team.liberoId);
+      } else {
+        // Posto 2 o 4: tutti gli schiacciatori
+        players = defendingTeamRotation.team.roster.filter(p => p.role === 'S' && p.id !== defendingTeamRotation.team.liberoId);
+      }
+      
+      return { zone: blockZone, players };
     });
     
     return {

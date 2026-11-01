@@ -1246,6 +1246,21 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     return playerInZone(team, assignment, blockZone);
   };
 
+  // Ottieni TUTTI i giocatori che possono fare muro in una posizione
+  // basandosi sul ruolo (S per posti 2 e 4, C per posto 3)
+  const getAllBlockersForZone = (
+    team: Team,
+    blockZone: Zone
+  ): Player[] => {
+    if (blockZone === 3) {
+      // Centro: tutti i centrali
+      return team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
+    } else {
+      // Posto 2 o 4: tutti gli schiacciatori
+      return team.roster.filter(p => p.role === 'S' && p.id !== team.liberoId);
+    }
+  };
+
   const attackZones: Zone[] = [4, 3, 2];
 
   return (
@@ -1437,30 +1452,39 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                 {attackZones.map(zone => {
                   const attacker = getAttacker(teamA, assignmentA, zone, bpA, modeA);
                   const blockZones = ATTACK_TO_BLOCK_ZONES[zone];
-                  const blockers = blockZones.map(bz => getBlocker(teamB, assignmentB, bz));
                   
                   // Escludi il Libero dai matchup
                   if (isLibero(attacker)) {
                     return null;
                   }
                   
-                  const validBlockers = blockers.filter(b => !isLibero(b));
+                  // Per ogni zona di muro, ottieni tutti i giocatori possibili
+                  const allBlockersByZone = blockZones.map(bz => ({
+                    zone: bz,
+                    players: getAllBlockersForZone(teamB, bz)
+                  }));
                   
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
                       <td className="border p-2">
-                        {validBlockers.length > 0 ? (
-                          validBlockers.map((b, i) => (
-                            <span key={i}>
-                              {formatPlayerCompact(b)}
-                              {i < validBlockers.length - 1 ? ' + ' : ''}
-                            </span>
-                          ))
-                        ) : (
-                          'Da configurare'
-                        )}
+                        {allBlockersByZone.map((blockerGroup, idx) => (
+                          <div key={idx} className="mb-1">
+                            <span className="text-xs text-gray-500">Z{blockerGroup.zone}: </span>
+                            {blockerGroup.players.length > 0 ? (
+                              blockerGroup.players.map((p, pIdx) => (
+                                <span key={pIdx}>
+                                  {formatPlayerCompact(p)}
+                                  {pIdx < blockerGroup.players.length - 1 ? ' o ' : ''}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                            {idx < allBlockersByZone.length - 1 ? ' + ' : ''}
+                          </div>
+                        ))}
                       </td>
                       <td className="border p-2 text-gray-500">
                         Attacco da Z{zone} → muro Z{blockZones.join(' + Z')} avversario
@@ -1495,30 +1519,39 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                 {attackZones.map(zone => {
                   const attacker = getAttacker(teamB, assignmentB, zone, bpB, modeB);
                   const blockZones = ATTACK_TO_BLOCK_ZONES[zone];
-                  const blockers = blockZones.map(bz => getBlocker(teamA, assignmentA, bz));
                   
                   // Escludi il Libero dai matchup
                   if (isLibero(attacker)) {
                     return null;
                   }
                   
-                  const validBlockers = blockers.filter(b => !isLibero(b));
+                  // Per ogni zona di muro, ottieni tutti i giocatori possibili
+                  const allBlockersByZone = blockZones.map(bz => ({
+                    zone: bz,
+                    players: getAllBlockersForZone(teamA, bz)
+                  }));
                   
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
                       <td className="border p-2">
-                        {validBlockers.length > 0 ? (
-                          validBlockers.map((b, i) => (
-                            <span key={i}>
-                              {formatPlayerCompact(b)}
-                              {i < validBlockers.length - 1 ? ' + ' : ''}
-                            </span>
-                          ))
-                        ) : (
-                          'Da configurare'
-                        )}
+                        {allBlockersByZone.map((blockerGroup, idx) => (
+                          <div key={idx} className="mb-1">
+                            <span className="text-xs text-gray-500">Z{blockerGroup.zone}: </span>
+                            {blockerGroup.players.length > 0 ? (
+                              blockerGroup.players.map((p, pIdx) => (
+                                <span key={pIdx}>
+                                  {formatPlayerCompact(p)}
+                                  {pIdx < blockerGroup.players.length - 1 ? ' o ' : ''}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                            {idx < allBlockersByZone.length - 1 ? ' + ' : ''}
+                          </div>
+                        ))}
                       </td>
                       <td className="border p-2 text-gray-500">
                         Attacco da Z{zone} → muro Z{blockZones.join(' + Z')} avversario

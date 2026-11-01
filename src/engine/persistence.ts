@@ -172,16 +172,17 @@ export function createExampleMatchupData(): AnalysisData {
       { id: 't-10', number: 10, name: 'Fastoso', role: 'C', tacticalLabel: 'C1' },
       { id: 't-6', number: 6, name: 'Madonna', role: 'S', tacticalLabel: 'S2' },
       { id: 't-15', number: 15, name: 'Piccolo', role: 'C', tacticalLabel: 'C2' },
-      { id: 't-4', number: 4, name: 'Menna', role: 'P', tacticalLabel: '' },
+      { id: 't-4', number: 4, name: 'Menna', role: 'S', tacticalLabel: 'S3' },
+      { id: 't-7', number: 7, name: 'Leone', role: 'S', tacticalLabel: 'S4' },
+      { id: 't-p', number: 1, name: 'Palleggiatore', role: 'P', tacticalLabel: '' },
     ],
     startingSix: [null, null, null, null, null, null],
     liberoId: null,
     initialRotation: 'P1',
   };
 
-  // RP layout: Z4=8(S), Z3=10(C), Z2=6(S), Z5=15(C), Z6=8(S), Z1=4(P)
-  // Nota: Z6=8(S) sembra un errore nel documento (doppio 8), ma lo manteniamo come da specifiche
-  teamB.startingSix = ['t-4', 't-6', 't-10', 't-8', 't-15', 't-8'];
+  // RP layout: Z1=P, Z2=S, Z3=C, Z4=S, Z5=C, Z6=S
+  teamB.startingSix = ['t-p', 't-6', 't-10', 't-8', 't-15', 't-4'];
 
   const setConfig: SetConfig = {
     setName: 'Set 1',
