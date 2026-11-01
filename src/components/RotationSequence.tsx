@@ -39,7 +39,7 @@ export function RotationSequence({
         
         // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
         if (blockZone === 3) {
-          // CENTRO: SEMPRE centrali (indipendentemente dalla fase)
+          // CENTRO: SEMPRE centrali (indipendentemente dalla fase e rotazione)
           // I centrali attaccano e murano sempre dal centro
           players = defendingTeam.roster.filter(
             p => p.role === 'C' && p.id !== defendingTeam.liberoId
@@ -57,11 +57,25 @@ export function RotationSequence({
               p => p.role === 'S' && p.id !== defendingTeam.liberoId
             );
           }
-        } else {
-          // FASE RICEZIONE PUNTO: muro per POSIZIONE DI ROTAZIONE
+        } else if (rotation === 'P1') {
+          // FASE RICEZIONE PUNTO in P1: muro per POSIZIONE DI ROTAZIONE
+          // Chi si trova in quella zona mura lì
           const playerId = defendingAssignment[blockZone];
           const player = getPlayerById(defendingTeam, playerId);
           players = player && player.role !== 'L' ? [player] : [];
+        } else {
+          // FASE RICEZIONE PUNTO in P2-P6: muro per RUOLO (come in BP)
+          if (blockZone === 2) {
+            // Posto 2: Opposti + Palleggiatori
+            players = defendingTeam.roster.filter(
+              p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeam.liberoId
+            );
+          } else {
+            // Posto 4: Schiacciatori
+            players = defendingTeam.roster.filter(
+              p => p.role === 'S' && p.id !== defendingTeam.liberoId
+            );
+          }
         }
         
         return { zone: blockZone, players };

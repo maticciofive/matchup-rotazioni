@@ -93,18 +93,19 @@ export function calculateMatchups(
 /**
  * Calcola i matchup completi con TUTTI i muratori possibili
  * 
- * Regola del muro basata sulla fase di gioco:
+ * Regola del muro basata sulla fase di gioco e sulla rotazione:
  * 
  * FASE BREAK POINT (BP) - Muro per RUOLO:
  * - Posto 2: Opposti (OPP) + Palleggiatori (P)
- * - Posto 3: Centrali (C)
+ * - Posto 3: Centrali (C) - SEMPRE
  * - Posto 4: Schiacciatori (S)
  * 
- * FASE RICEZIONE PUNTO (RP) - Muro per POSIZIONE DI ROTAZIONE:
- * - Chi si trova in Z2 mura in Z2
- * - Chi si trova in Z3 mura in Z3
- * - Chi si trova in Z4 mura in Z4
- * (indipendentemente dal ruolo)
+ * FASE RICEZIONE PUNTO (RP):
+ * - P1: Muro per POSIZIONE DI ROTAZIONE (chi si trova in quella zona mura lì)
+ * - P2-P6: Muro per RUOLO (come in BP)
+ *   - Posto 2: Opposti (OPP) + Palleggiatori (P)
+ *   - Posto 3: Centrali (C) - SEMPRE
+ *   - Posto 4: Schiacciatori (S)
  * 
  * @param attackingTeamRotation - Rotazione della squadra in attacco
  * @param defendingTeamRotation - Rotazione della squadra in difesa (muro)
@@ -129,13 +130,13 @@ export function calculateCompleteMatchups(
     const attackerId = attackingTeamRotation.assignment[attackZone];
     const attacker = getPlayerById(attackingTeamRotation.team, attackerId);
     
-    // Muratori: per ogni zona di muro, trova i giocatori in base alla fase
+    // Muratori: per ogni zona di muro, trova i giocatori in base alla fase e rotazione
     // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
     const blockers = blockZones.map(blockZone => {
       let players: Player[];
       
       if (blockZone === 3) {
-        // CENTRO: SEMPRE centrali (indipendentemente dalla fase)
+        // CENTRO: SEMPRE centrali (indipendentemente dalla fase e rotazione)
         // I centrali attaccano e murano sempre dal centro
         players = defendingTeamRotation.team.roster.filter(
           p => p.role === 'C' && p.id !== defendingTeamRotation.team.liberoId
@@ -153,12 +154,25 @@ export function calculateCompleteMatchups(
             p => p.role === 'S' && p.id !== defendingTeamRotation.team.liberoId
           );
         }
-      } else {
-        // FASE RICEZIONE PUNTO: muro per POSIZIONE DI ROTAZIONE
+      } else if (defendingTeamRotation.rotation === 'P1') {
+        // FASE RICEZIONE PUNTO in P1: muro per POSIZIONE DI ROTAZIONE
         // Chi si trova in quella zona mura lì
         const playerId = defendingTeamRotation.assignment[blockZone];
         const player = getPlayerById(defendingTeamRotation.team, playerId);
         players = player && player.role !== 'L' ? [player] : [];
+      } else {
+        // FASE RICEZIONE PUNTO in P2-P6: muro per RUOLO (come in BP)
+        if (blockZone === 2) {
+          // Posto 2: Opposti + Palleggiatori
+          players = defendingTeamRotation.team.roster.filter(
+            p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeamRotation.team.liberoId
+          );
+        } else {
+          // Posto 4: Schiacciatori
+          players = defendingTeamRotation.team.roster.filter(
+            p => p.role === 'S' && p.id !== defendingTeamRotation.team.liberoId
+          );
+        }
       }
       
       return { zone: blockZone, players };
