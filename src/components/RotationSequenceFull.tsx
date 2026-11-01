@@ -1,5 +1,6 @@
 import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Zone, Player } from '../types';
 import { DualCourtView } from './DualCourtView';
+import { MatchupSummaryDetailed } from './MatchupSummaryDetailed';
 import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
 
 interface RotationSequenceFullProps {
@@ -181,6 +182,14 @@ export function RotationSequenceFull({
           </div>
         </div>
       </div>
+
+      {/* Riepilogo Dettagliato Matchup per Rotazione */}
+      <MatchupSummaryDetailed
+        teamA={teamA}
+        teamB={teamB}
+        assignmentsA={assignmentsA}
+        assignmentsB={assignmentsB}
+      />
 
       {/* Sequenza Rotazioni con Campi */}
       <div className="space-y-8">
