@@ -47,6 +47,24 @@ export interface TacticalSetup {
   notes: string;
 }
 
+// === Matchup Types ===
+
+export interface TeamRotation {
+  team: Team;
+  rotation: RotationLabel;
+  phase: 'BP' | 'RP';
+  assignment: ZoneAssignment;
+}
+
+export interface Matchup {
+  attackZone: Zone;
+  attacker: Player | null;
+  blockZone: Zone;
+  blocker: Player | null;
+  attackTeamName: string;
+  blockTeamName: string;
+}
+
 export interface MatchupConfig {
   rotationA: RotationLabel;
   rotationB: RotationLabel;

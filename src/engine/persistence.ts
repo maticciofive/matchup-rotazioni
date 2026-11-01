@@ -133,6 +133,75 @@ export function createDemoData(): AnalysisData {
   };
 }
 
+/**
+ * Crea dati di esempio con RIONE TERRA e TIRRENO
+ * Dati estratti dal documento di riferimento
+ */
+export function createExampleMatchupData(): AnalysisData {
+  // RIONE TERRA (BP) - Squadra A
+  const teamA: Team = {
+    id: 'rione-terra',
+    name: 'RIONE TERRA',
+    shortName: 'RTE',
+    color: '#dc2626',
+    roster: [
+      { id: 'rt-22', number: 22, name: 'Robin Hutrel', role: 'S', tacticalLabel: 'S1' },
+      { id: 'rt-7', number: 7, name: 'Alessandro Treglia', role: 'C', tacticalLabel: 'C1' },
+      { id: 'rt-10', number: 10, name: 'Samuele Bellanca', role: 'OPP', tacticalLabel: '' },
+      { id: 'rt-18', number: 18, name: 'Andrea Volpe', role: 'L', tacticalLabel: '' },
+      { id: 'rt-8', number: 8, name: 'Andrea Sangiovanni', role: 'S', tacticalLabel: 'S2' },
+      { id: 'rt-11', number: 11, name: 'Bruno Del Giudice', role: 'P', tacticalLabel: '' },
+    ],
+    startingSix: [null, null, null, null, null, null],
+    liberoId: 'rt-18',
+    initialRotation: 'P1',
+  };
+
+  // BP layout: Z4=22(S), Z3=7(C), Z2=10(OPP), Z5=18(L), Z6=8(S), Z1=11(P)
+  // Index: 0=Z1, 1=Z2, 2=Z3, 3=Z4, 4=Z5, 5=Z6
+  teamA.startingSix = ['rt-11', 'rt-10', 'rt-7', 'rt-22', 'rt-18', 'rt-8'];
+
+  // TIRRENO (RP) - Squadra B
+  const teamB: Team = {
+    id: 'tirreno',
+    name: 'TIRRENO',
+    shortName: 'TIR',
+    color: '#2563eb',
+    roster: [
+      { id: 't-8', number: 8, name: 'Auriemma', role: 'S', tacticalLabel: 'S1' },
+      { id: 't-10', number: 10, name: 'Fastoso', role: 'C', tacticalLabel: 'C1' },
+      { id: 't-6', number: 6, name: 'Madonna', role: 'S', tacticalLabel: 'S2' },
+      { id: 't-15', number: 15, name: 'Piccolo', role: 'C', tacticalLabel: 'C2' },
+      { id: 't-4', number: 4, name: 'Menna', role: 'P', tacticalLabel: '' },
+    ],
+    startingSix: [null, null, null, null, null, null],
+    liberoId: null,
+    initialRotation: 'P1',
+  };
+
+  // RP layout: Z4=8(S), Z3=10(C), Z2=6(S), Z5=15(C), Z6=8(S), Z1=4(P)
+  // Nota: Z6=8(S) sembra un errore nel documento (doppio 8), ma lo manteniamo come da specifiche
+  teamB.startingSix = ['t-4', 't-6', 't-10', 't-8', 't-15', 't-8'];
+
+  const setConfig: SetConfig = {
+    setName: 'Set 1',
+    rotationA: 'P1',
+    rotationB: 'P1',
+    servingTeam: 'A',
+  };
+
+  return {
+    version: SCHEMA_VERSION,
+    teamA,
+    teamB,
+    setConfig,
+    tacticalSetupsA: [],
+    tacticalSetupsB: [],
+    matchupConfigs: [],
+    simulation: null,
+  };
+}
+
 function generateDemoTacticalSetups(team: Team): TacticalSetup[] {
   const rotations: RotationLabel[] = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
   const setups: TacticalSetup[] = [];

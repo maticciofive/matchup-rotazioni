@@ -11,10 +11,13 @@ import {
 } from './engine/rotations';
 import {
   saveToLocalStorage, loadFromLocalStorage, clearLocalStorage,
-  exportToJSON, importFromJSON, createDemoData, buildZoneAssignment
+  exportToJSON, importFromJSON, createDemoData, createExampleMatchupData, buildZoneAssignment
 } from './engine/persistence';
 import { validateAnalysis } from './engine/validation';
-import type { ValidationError } from './types';
+import {
+  calculateMatchups, isLiberoInStartingSix, isLibero, ATTACK_TO_BLOCK_ZONE
+} from './engine/matchup';
+import type { ValidationError, TeamRotation, Matchup } from './types';
 
 type TabId = 'teams' | 'set' | 'tactical' | 'matchup' | 'sequence' | 'simulation' | 'matrix' | 'print';
 
@@ -48,6 +51,12 @@ export default function App() {
   const loadDemo = useCallback(() => {
     setData(createDemoData());
     showNotification('Esempio caricato con successo');
+  }, [showNotification]);
+
+  const loadMatchupExample = useCallback(() => {
+    setData(createExampleMatchupData());
+    setActiveTab('matchup');
+    showNotification('Esempio matchup caricato: RIONE TERRA vs TIRRENO');
   }, [showNotification]);
 
   const newAnalysis = useCallback(() => {
@@ -105,6 +114,9 @@ export default function App() {
           <div className="space-y-3">
             <button onClick={loadDemo} className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">
               Carica esempio
+            </button>
+            <button onClick={loadMatchupExample} className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition">
+              Carica esempio matchup (RIONE TERRA vs TIRRENO)
             </button>
             <button onClick={() => { setData(createEmptyAnalysis()); }} className="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition">
               Nuova analisi
@@ -1289,6 +1301,36 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           </div>
         </div>
 
+        {/* Alert Libero */}
+        {isLiberoInStartingSix(teamA, assignmentA) && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-yellow-400 text-xl">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>Libero presente nel sestetto titolare di {teamA.name}</strong> — il libero dovrebbe essere rimpiazzato manualmente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {isLiberoInStartingSix(teamB, assignmentB) && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-yellow-400 text-xl">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>Libero presente nel sestetto titolare di {teamB.name}</strong> — il libero dovrebbe essere rimpiazzato manualmente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Servizio e valutazione */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
@@ -1370,13 +1412,19 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                 {attackZones.map(zone => {
                   const attacker = getAttacker(teamA, assignmentA, zone, bpA, modeA);
                   const blocker = getBlocker(teamB, assignmentB, zone);
+                  
+                  // Escludi il Libero dai matchup
+                  if (isLibero(attacker) || isLibero(blocker)) {
+                    return null;
+                  }
+                  
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
                       <td className="border p-2">{blocker ? formatPlayerCompact(blocker) : 'Da configurare'}</td>
                       <td className="border p-2 text-gray-500">
-                        Attacco da Z{zone} → muro Z{zone === 4 ? 2 : zone === 2 ? 4 : 3} avversario
+                        Attacco da Z{zone} → muro Z{ATTACK_TO_BLOCK_ZONE[zone]} avversario
                       </td>
                     </tr>
                   );
@@ -1385,7 +1433,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
             </table>
           </div>
           <p className="text-xs text-gray-500 mt-1 italic">
-            La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
+            ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
           </p>
         </div>
 
@@ -1408,13 +1456,19 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                 {attackZones.map(zone => {
                   const attacker = getAttacker(teamB, assignmentB, zone, bpB, modeB);
                   const blocker = getBlocker(teamA, assignmentA, zone);
+                  
+                  // Escludi il Libero dai matchup
+                  if (isLibero(attacker) || isLibero(blocker)) {
+                    return null;
+                  }
+                  
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
                       <td className="border p-2">{blocker ? formatPlayerCompact(blocker) : 'Da configurare'}</td>
                       <td className="border p-2 text-gray-500">
-                        Attacco da Z{zone} → muro Z{zone === 4 ? 2 : zone === 2 ? 4 : 3} avversario
+                        Attacco da Z{zone} → muro Z{ATTACK_TO_BLOCK_ZONE[zone]} avversario
                       </td>
                     </tr>
                   );
@@ -1423,7 +1477,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
             </table>
           </div>
           <p className="text-xs text-gray-500 mt-1 italic">
-            La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
+            ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
           </p>
         </div>
       </div>
