@@ -1,7 +1,6 @@
-import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER } from '../types';
+import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Player, Zone } from '../types';
 import { InteractiveCourt } from './InteractiveCourt';
 import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
-import { Zone } from '../types';
 
 interface RotationSequenceProps {
   teamA: Team;
@@ -36,13 +35,33 @@ export function RotationSequence({
 
       const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone];
       const blockers = blockZones.map((blockZone: Zone) => {
-        const players = defendingTeam.roster.filter(p => {
+        let players: Player[];
+        
+        if (phase === 'BP') {
+          // FASE BREAK POINT: muro per RUOLO
           if (blockZone === 3) {
-            return p.role === 'C' && p.id !== defendingTeam.liberoId;
+            // Centro: tutti i centrali
+            players = defendingTeam.roster.filter(
+              p => p.role === 'C' && p.id !== defendingTeam.liberoId
+            );
+          } else if (blockZone === 2) {
+            // Posto 2: Opposti + Palleggiatori
+            players = defendingTeam.roster.filter(
+              p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeam.liberoId
+            );
           } else {
-            return p.role === 'S' && p.id !== defendingTeam.liberoId;
+            // Posto 4: Schiacciatori
+            players = defendingTeam.roster.filter(
+              p => p.role === 'S' && p.id !== defendingTeam.liberoId
+            );
           }
-        });
+        } else {
+          // FASE RICEZIONE PUNTO: muro per POSIZIONE DI ROTAZIONE
+          const playerId = defendingAssignment[blockZone];
+          const player = getPlayerById(defendingTeam, playerId);
+          players = player && player.role !== 'L' ? [player] : [];
+        }
+        
         return { zone: blockZone, players };
       });
 
