@@ -15,9 +15,11 @@ import {
 } from './engine/persistence';
 import { validateAnalysis } from './engine/validation';
 import {
-  calculateMatchups, isLiberoInStartingSix, isLibero, ATTACK_TO_BLOCK_ZONE
+  calculateMatchups, calculateCompleteMatchups, isLiberoInStartingSix, isLibero, ATTACK_TO_BLOCK_ZONE, ATTACK_TO_BLOCK_ZONES
 } from './engine/matchup';
-import type { ValidationError, TeamRotation, Matchup } from './types';
+import { CourtView } from './components/CourtView';
+import { MatchupSummary } from './components/MatchupSummary';
+import type { ValidationError, TeamRotation, Matchup, CompleteMatchup } from './types';
 
 type TabId = 'teams' | 'set' | 'tactical' | 'matchup' | 'sequence' | 'simulation' | 'matrix' | 'print';
 
@@ -1393,7 +1395,30 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           />
         </div>
 
-        {/* Attack A vs Block B */}
+        {/* Campi visivi con rotazioni */}
+        <div className="mb-6">
+          <h3 className="font-bold text-lg mb-4 text-center text-gray-800">
+            Disposizioni in Campo
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CourtView
+              team={teamA}
+              assignment={assignmentA}
+              rotation={selectedRotA}
+              phase={bpA}
+              color={teamA.color}
+            />
+            <CourtView
+              team={teamB}
+              assignment={assignmentB}
+              rotation={selectedRotB}
+              phase={bpB}
+              color={teamB.color}
+            />
+          </div>
+        </div>
+
+        {/* Attack A vs Block B - Tabella completa con DUE muratori */}
         <div className="mb-6">
           <h3 className="font-bold text-sm mb-3" style={{ color: teamA.color }}>
             Attacco {teamA.name} → Muro {teamB.name}
@@ -1404,27 +1429,41 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                 <tr className="bg-gray-100">
                   <th className="border p-2 text-left">Canale</th>
                   <th className="border p-2 text-left">Attaccante</th>
-                  <th className="border p-2 text-left">Muratore rif.</th>
+                  <th className="border p-2 text-left">Muratori (coppia)</th>
                   <th className="border p-2 text-left">Note</th>
                 </tr>
               </thead>
               <tbody>
                 {attackZones.map(zone => {
                   const attacker = getAttacker(teamA, assignmentA, zone, bpA, modeA);
-                  const blocker = getBlocker(teamB, assignmentB, zone);
+                  const blockZones = ATTACK_TO_BLOCK_ZONES[zone];
+                  const blockers = blockZones.map(bz => getBlocker(teamB, assignmentB, bz));
                   
                   // Escludi il Libero dai matchup
-                  if (isLibero(attacker) || isLibero(blocker)) {
+                  if (isLibero(attacker)) {
                     return null;
                   }
+                  
+                  const validBlockers = blockers.filter(b => !isLibero(b));
                   
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
-                      <td className="border p-2">{blocker ? formatPlayerCompact(blocker) : 'Da configurare'}</td>
+                      <td className="border p-2">
+                        {validBlockers.length > 0 ? (
+                          validBlockers.map((b, i) => (
+                            <span key={i}>
+                              {formatPlayerCompact(b)}
+                              {i < validBlockers.length - 1 ? ' + ' : ''}
+                            </span>
+                          ))
+                        ) : (
+                          'Da configurare'
+                        )}
+                      </td>
                       <td className="border p-2 text-gray-500">
-                        Attacco da Z{zone} → muro Z{ATTACK_TO_BLOCK_ZONE[zone]} avversario
+                        Attacco da Z{zone} → muro Z{blockZones.join(' + Z')} avversario
                       </td>
                     </tr>
                   );
@@ -1437,8 +1476,8 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           </p>
         </div>
 
-        {/* Attack B vs Block A */}
-        <div>
+        {/* Attack B vs Block A - Tabella completa con DUE muratori */}
+        <div className="mb-6">
           <h3 className="font-bold text-sm mb-3" style={{ color: teamB.color }}>
             Attacco {teamB.name} → Muro {teamA.name}
           </h3>
@@ -1448,27 +1487,41 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                 <tr className="bg-gray-100">
                   <th className="border p-2 text-left">Canale</th>
                   <th className="border p-2 text-left">Attaccante</th>
-                  <th className="border p-2 text-left">Muratore rif.</th>
+                  <th className="border p-2 text-left">Muratori (coppia)</th>
                   <th className="border p-2 text-left">Note</th>
                 </tr>
               </thead>
               <tbody>
                 {attackZones.map(zone => {
                   const attacker = getAttacker(teamB, assignmentB, zone, bpB, modeB);
-                  const blocker = getBlocker(teamA, assignmentA, zone);
+                  const blockZones = ATTACK_TO_BLOCK_ZONES[zone];
+                  const blockers = blockZones.map(bz => getBlocker(teamA, assignmentA, bz));
                   
                   // Escludi il Libero dai matchup
-                  if (isLibero(attacker) || isLibero(blocker)) {
+                  if (isLibero(attacker)) {
                     return null;
                   }
+                  
+                  const validBlockers = blockers.filter(b => !isLibero(b));
                   
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
-                      <td className="border p-2">{blocker ? formatPlayerCompact(blocker) : 'Da configurare'}</td>
+                      <td className="border p-2">
+                        {validBlockers.length > 0 ? (
+                          validBlockers.map((b, i) => (
+                            <span key={i}>
+                              {formatPlayerCompact(b)}
+                              {i < validBlockers.length - 1 ? ' + ' : ''}
+                            </span>
+                          ))
+                        ) : (
+                          'Da configurare'
+                        )}
+                      </td>
                       <td className="border p-2 text-gray-500">
-                        Attacco da Z{zone} → muro Z{ATTACK_TO_BLOCK_ZONE[zone]} avversario
+                        Attacco da Z{zone} → muro Z{blockZones.join(' + Z')} avversario
                       </td>
                     </tr>
                   );
@@ -1479,6 +1532,20 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           <p className="text-xs text-gray-500 mt-1 italic">
             ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
           </p>
+        </div>
+
+        {/* Riepilogo completo con componente dedicato */}
+        <div className="mb-6">
+          <MatchupSummary
+            teamA={teamA}
+            teamB={teamB}
+            assignmentA={assignmentA}
+            assignmentB={assignmentB}
+            rotationA={selectedRotA}
+            rotationB={selectedRotB}
+            phaseA={bpA}
+            phaseB={bpB}
+          />
         </div>
       </div>
 

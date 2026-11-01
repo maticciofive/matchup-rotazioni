@@ -65,6 +65,14 @@ export interface Matchup {
   blockTeamName: string;
 }
 
+export interface CompleteMatchup {
+  attackZone: Zone;
+  attacker: Player | null;
+  blockers: Array<{ zone: Zone; player: Player | null }>;
+  attackTeamName: string;
+  blockTeamName: string;
+}
+
 export interface MatchupConfig {
   rotationA: RotationLabel;
   rotationB: RotationLabel;

@@ -1,10 +1,24 @@
 import { Player, Zone, ZoneAssignment, Team, TeamRotation, Matchup } from '../types';
 
 /**
- * Regola geometrica fondamentale:
- * - Attacco da Z4 → Muro in Z2 avversaria
- * - Attacco da Z3 → Muro in Z3 avversaria
- * - Attacco da Z2 → Muro in Z4 avversaria
+ * Regola geometrica della pallavolo:
+ * - Attacco da Z4 → Muro di Z2 + Z3 (centro)
+ * - Attacco da Z3 → Muro di Z3 (centro)
+ * - Attacco da Z2 → Muro di Z4 + Z3 (centro)
+ * 
+ * Il centro (Z3) è sempre coinvolto nel muro tranne quando attacca dal centro stesso
+ */
+export const ATTACK_TO_BLOCK_ZONES: Record<Zone, Zone[]> = {
+  4: [2, 3], // Attacco da posto 4 → muro posto 2 + centro
+  3: [3],    // Attacco da posto 3 → muro centro
+  2: [4, 3], // Attacco da posto 2 → muro posto 4 + centro
+  1: [],
+  5: [],
+  6: [],
+};
+
+/**
+ * Mappatura legacy per compatibilità (solo il muratore principale)
  */
 export const ATTACK_TO_BLOCK_ZONE: Partial<Record<Zone, Zone>> = {
   4: 2,
@@ -33,6 +47,10 @@ export function isLiberoInStartingSix(team: Team, assignment: ZoneAssignment): b
 
 /**
  * Calcola i matchup di attacco-muro per una squadra in attacco
+ * Ogni attacco ha uno o due muratori di riferimento secondo la regola:
+ * - Attacco da Z4 → Muro di Z2 + Z3 (centro)
+ * - Attacco da Z3 → Muro di Z3 (centro)
+ * - Attacco da Z2 → Muro di Z4 + Z3 (centro)
  * 
  * @param attackingTeamRotation - Rotazione della squadra in attacco
  * @param defendingTeamRotation - Rotazione della squadra in difesa (muro)
@@ -45,21 +63,70 @@ export function calculateMatchups(
   const attackZones: Zone[] = [4, 3, 2];
   
   return attackZones.map(attackZone => {
-    const blockZone = ATTACK_TO_BLOCK_ZONE[attackZone] ?? attackZone;
+    const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone];
     
     // Attaccante: giocatore in attackZone della squadra in attacco
     const attackerId = attackingTeamRotation.assignment[attackZone];
     const attacker = getPlayerById(attackingTeamRotation.team, attackerId);
     
-    // Muratore: giocatore in blockZone della squadra in difesa
-    const blockerId = defendingTeamRotation.assignment[blockZone];
-    const blocker = getPlayerById(defendingTeamRotation.team, blockerId);
+    // Muratori: giocatori nelle zone di muro della squadra in difesa
+    const blockers = blockZones.map(blockZone => {
+      const blockerId = defendingTeamRotation.assignment[blockZone];
+      return getPlayerById(defendingTeamRotation.team, blockerId);
+    }).filter((p): p is Player => p !== null);
+    
+    // Per compatibilità, usiamo il primo muratore come "principale"
+    const primaryBlocker = blockers[0] || null;
+    const primaryBlockZone = blockZones[0];
     
     return {
       attackZone,
       attacker,
-      blockZone,
-      blocker,
+      blockZone: primaryBlockZone,
+      blocker: primaryBlocker,
+      attackTeamName: attackingTeamRotation.team.name,
+      blockTeamName: defendingTeamRotation.team.name,
+    };
+  });
+}
+
+/**
+ * Calcola i matchup completi con TUTTI i muratori
+ * 
+ * @param attackingTeamRotation - Rotazione della squadra in attacco
+ * @param defendingTeamRotation - Rotazione della squadra in difesa (muro)
+ * @returns Array di 3 matchup completi con tutti i muratori
+ */
+export function calculateCompleteMatchups(
+  attackingTeamRotation: TeamRotation,
+  defendingTeamRotation: TeamRotation
+): Array<{
+  attackZone: Zone;
+  attacker: Player | null;
+  blockers: Array<{ zone: Zone; player: Player | null }>;
+  attackTeamName: string;
+  blockTeamName: string;
+}> {
+  const attackZones: Zone[] = [4, 3, 2];
+  
+  return attackZones.map(attackZone => {
+    const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone];
+    
+    // Attaccante: giocatore in attackZone della squadra in attacco
+    const attackerId = attackingTeamRotation.assignment[attackZone];
+    const attacker = getPlayerById(attackingTeamRotation.team, attackerId);
+    
+    // Muratori: giocatori nelle zone di muro della squadra in difesa
+    const blockers = blockZones.map(blockZone => {
+      const blockerId = defendingTeamRotation.assignment[blockZone];
+      const player = getPlayerById(defendingTeamRotation.team, blockerId);
+      return { zone: blockZone, player };
+    });
+    
+    return {
+      attackZone,
+      attacker,
+      blockers,
       attackTeamName: attackingTeamRotation.team.name,
       blockTeamName: defendingTeamRotation.team.name,
     };
