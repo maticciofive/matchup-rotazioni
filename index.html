@@ -5,15 +5,104 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏐</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Analisi Rotazioni Pallavolo</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        text-align: center;
+      }
+      .loading-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+      .loading-text {
+        font-size: 1rem;
+        color: #666;
+        margin-bottom: 1rem;
+      }
+      .loading-error {
+        background-color: #fef3c7;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
+        padding: 20px;
+        max-width: 600px;
+        margin-top: 20px;
+        text-align: left;
+      }
+      .loading-error h3 {
+        color: #92400e;
+        margin-top: 0;
+        margin-bottom: 1rem;
+      }
+      .loading-error p {
+        color: #78350f;
+        margin-bottom: 0.5rem;
+      }
+      .loading-error code {
+        background-color: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+      }
+      .loading-error ul {
+        margin-top: 1rem;
+        padding-left: 1.5rem;
+      }
+      .loading-error li {
+        margin-bottom: 0.5rem;
+      }
+    </style>
   </head>
   <body>
     <div id="root">
-      <div style="padding: 20px; text-align: center; font-family: sans-serif;">
-        <h1>🏐 Analisi Rotazioni Pallavolo</h1>
-        <p>Caricamento in corso...</p>
-        <p style="font-size: 12px; color: #666;">Se vedi questo messaggio per più di 5 secondi, apri la console del browser (F12) per vedere gli errori.</p>
+      <div class="loading-container">
+        <div class="loading-title">🏐 Analisi Rotazioni Pallavolo</div>
+        <div class="loading-text">Caricamento in corso...</div>
+        <div class="loading-error" id="error-message" style="display: none;">
+          <h3>⚠️ Errore di Caricamento</h3>
+          <p>Se vedi questo messaggio, l'applicazione non è riuscita a caricarsi correttamente.</p>
+          <p><strong>Possibili cause:</strong></p>
+          <ul>
+            <li>I file JavaScript o CSS non sono stati trovati (errore 404)</li>
+            <li>Il base path di Vite non è configurato correttamente</li>
+            <li>Il deploy su GitHub Pages non è stato completato</li>
+          </ul>
+          <p><strong>Soluzioni:</strong></p>
+          <ul>
+            <li>Apri la console del browser (F12) e controlla gli errori</li>
+            <li>Verifica che il file <code>vite.config.js</code> abbia <code>base: '/matchup-rotazioni/'</code></li>
+            <li>Verifica che GitHub Pages sia configurato con "GitHub Actions" come source</li>
+            <li>Svuota la cache del browser (Ctrl+Shift+R)</li>
+          </ul>
+          <p><strong>Informazioni di debug:</strong></p>
+          <p>URL corrente: <code id="current-url"></code></p>
+          <p>Base path atteso: <code>/matchup-rotazioni/</code></p>
+        </div>
       </div>
     </div>
+    <script>
+      // Mostra l'URL corrente per debug
+      document.getElementById('current-url').textContent = window.location.href;
+      
+      // Se dopo 5 secondi l'app non si è caricata, mostra il messaggio di errore
+      setTimeout(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length === 1 && root.children[0].classList.contains('loading-container')) {
+          document.getElementById('error-message').style.display = 'block';
+        }
+      }, 5000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
