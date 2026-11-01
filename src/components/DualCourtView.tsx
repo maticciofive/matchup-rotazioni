@@ -42,16 +42,16 @@ export function DualCourtView({
     5: { x: 20, y: 80 }, 6: { x: 50, y: 80 }, 1: { x: 80, y: 80 }, // Seconda linea
   });
   
-  // Squadra B (sopra) - vista dal proprio fondo campo (invertita rispetto all'osservatore):
-  //   Zona 5: (20%, 20%) - alto destra (per B)
+  // Squadra B (sopra) - vista dal proprio fondo campo:
+  //   Zona 1: (20%, 20%) - alto sinistra
   //   Zona 6: (50%, 20%) - alto centro
-  //   Zona 1: (80%, 20%) - alto sinistra (per B)
-  //   Zona 4: (20%, 80%) - basso destra (per B)
+  //   Zona 5: (80%, 20%) - alto destra
+  //   Zona 2: (20%, 80%) - basso sinistra
   //   Zona 3: (50%, 80%) - basso centro
-  //   Zona 2: (80%, 80%) - basso sinistra (per B)
+  //   Zona 4: (80%, 80%) - basso destra
   const [positionsB, setPositionsB] = useState<Record<Zone, { x: number; y: number }>>({
-    5: { x: 20, y: 20 }, 6: { x: 50, y: 20 }, 1: { x: 80, y: 20 }, // Seconda linea
-    4: { x: 20, y: 80 }, 3: { x: 50, y: 80 }, 2: { x: 80, y: 80 }, // Prima linea (vicino alla rete)
+    1: { x: 20, y: 20 }, 6: { x: 50, y: 20 }, 5: { x: 80, y: 20 }, // Seconda linea (in alto)
+    2: { x: 20, y: 80 }, 3: { x: 50, y: 80 }, 4: { x: 80, y: 80 }, // Prima linea (in basso, vicino alla rete)
   });
 
   const [dragging, setDragging] = useState<{ team: 'A' | 'B'; phase: 'RP' | 'BP'; zone: Zone } | null>(null);
