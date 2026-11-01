@@ -23,7 +23,8 @@ export function MatchupSummaryDetailed({
     defendTeam: Team,
     defendAssignment: ZoneAssignment,
     blockZone: Zone,
-    phase: 'RP' | 'BP'
+    phase: 'RP' | 'BP',
+    rotation: RotationLabel
   ): Player[] => {
     if (blockZone === 3) {
       // Centro: SEMPRE centrali
@@ -35,11 +36,18 @@ export function MatchupSummaryDetailed({
       } else {
         return defendTeam.roster.filter(p => p.role === 'S' && p.id !== defendTeam.liberoId);
       }
-    } else {
-      // RP: muro per posizione
+    } else if (rotation === 'P1') {
+      // RP in P1: muro per posizione
       const playerId = defendAssignment[blockZone];
       const player = getPlayerById(defendTeam, playerId);
       return player && player.role !== 'L' ? [player] : [];
+    } else {
+      // RP in P2-P6: muro per ruolo (come in BP)
+      if (blockZone === 2) {
+        return defendTeam.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendTeam.liberoId);
+      } else {
+        return defendTeam.roster.filter(p => p.role === 'S' && p.id !== defendTeam.liberoId);
+      }
     }
   };
 
@@ -69,7 +77,7 @@ export function MatchupSummaryDetailed({
     const blockZones = ATTACK_TO_BLOCK_ZONES[playerZone];
     const blockers = blockZones.map(blockZone => ({
       zone: blockZone,
-      players: getBlockers(opponentTeam, opponentAssignment, blockZone, phase)
+      players: getBlockers(opponentTeam, opponentAssignment, blockZone, phase, rotation)
     }));
 
     return {
