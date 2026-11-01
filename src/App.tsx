@@ -1250,17 +1250,37 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   };
 
   // Ottieni TUTTI i giocatori che possono fare muro in una posizione
-  // basandosi sul ruolo (S per posti 2 e 4, C per posto 3)
+  // La logica cambia in base alla fase di gioco:
+  // - BP (Break Point): muro per RUOLO
+  //   - Posto 2: Opposti + Palleggiatori
+  //   - Posto 3: Centrali
+  //   - Posto 4: Schiacciatori
+  // - RP (Ricezione Punto): muro per POSIZIONE DI ROTAZIONE
+  //   - Chi si trova in quella zona mura lì
   const getAllBlockersForZone = (
     team: Team,
-    blockZone: Zone
+    blockZone: Zone,
+    phase: 'BP' | 'RP',
+    assignment?: ZoneAssignment
   ): Player[] => {
-    if (blockZone === 3) {
-      // Centro: tutti i centrali
-      return team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
+    if (phase === 'BP') {
+      // FASE BREAK POINT: muro per RUOLO
+      if (blockZone === 3) {
+        // Centro: tutti i centrali
+        return team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
+      } else if (blockZone === 2) {
+        // Posto 2: Opposti + Palleggiatori
+        return team.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== team.liberoId);
+      } else {
+        // Posto 4: Schiacciatori
+        return team.roster.filter(p => p.role === 'S' && p.id !== team.liberoId);
+      }
     } else {
-      // Posto 2 o 4: tutti gli schiacciatori
-      return team.roster.filter(p => p.role === 'S' && p.id !== team.liberoId);
+      // FASE RICEZIONE PUNTO: muro per POSIZIONE DI ROTAZIONE
+      if (!assignment) return [];
+      const playerId = assignment[blockZone];
+      const player = getPlayerById(team, playerId);
+      return player && player.role !== 'L' ? [player] : [];
     }
   };
 
@@ -1464,7 +1484,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                   // Per ogni zona di muro, ottieni tutti i giocatori possibili
                   const allBlockersByZone = blockZones.map(bz => ({
                     zone: bz,
-                    players: getAllBlockersForZone(teamB, bz)
+                    players: getAllBlockersForZone(teamB, bz, bpB, assignmentB)
                   }));
                   
                   return (
@@ -1531,7 +1551,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                   // Per ogni zona di muro, ottieni tutti i giocatori possibili
                   const allBlockersByZone = blockZones.map(bz => ({
                     zone: bz,
-                    players: getAllBlockersForZone(teamA, bz)
+                    players: getAllBlockersForZone(teamA, bz, bpA, assignmentA)
                   }));
                   
                   return (
