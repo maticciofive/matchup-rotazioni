@@ -130,17 +130,19 @@ export function calculateCompleteMatchups(
     const attacker = getPlayerById(attackingTeamRotation.team, attackerId);
     
     // Muratori: per ogni zona di muro, trova i giocatori in base alla fase
+    // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
     const blockers = blockZones.map(blockZone => {
       let players: Player[];
       
-      if (defendingTeamRotation.phase === 'BP') {
+      if (blockZone === 3) {
+        // CENTRO: SEMPRE centrali (indipendentemente dalla fase)
+        // I centrali attaccano e murano sempre dal centro
+        players = defendingTeamRotation.team.roster.filter(
+          p => p.role === 'C' && p.id !== defendingTeamRotation.team.liberoId
+        );
+      } else if (defendingTeamRotation.phase === 'BP') {
         // FASE BREAK POINT: muro per RUOLO
-        if (blockZone === 3) {
-          // Centro: tutti i centrali
-          players = defendingTeamRotation.team.roster.filter(
-            p => p.role === 'C' && p.id !== defendingTeamRotation.team.liberoId
-          );
-        } else if (blockZone === 2) {
+        if (blockZone === 2) {
           // Posto 2: Opposti + Palleggiatori
           players = defendingTeamRotation.team.roster.filter(
             p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeamRotation.team.liberoId

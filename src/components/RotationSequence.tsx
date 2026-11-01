@@ -1,5 +1,5 @@
 import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Player, Zone } from '../types';
-import { InteractiveCourt } from './InteractiveCourt';
+import { OpposedCourt } from './OpposedCourt';
 import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
 
 interface RotationSequenceProps {
@@ -37,14 +37,16 @@ export function RotationSequence({
       const blockers = blockZones.map((blockZone: Zone) => {
         let players: Player[];
         
-        if (phase === 'BP') {
+        // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
+        if (blockZone === 3) {
+          // CENTRO: SEMPRE centrali (indipendentemente dalla fase)
+          // I centrali attaccano e murano sempre dal centro
+          players = defendingTeam.roster.filter(
+            p => p.role === 'C' && p.id !== defendingTeam.liberoId
+          );
+        } else if (phase === 'BP') {
           // FASE BREAK POINT: muro per RUOLO
-          if (blockZone === 3) {
-            // Centro: tutti i centrali
-            players = defendingTeam.roster.filter(
-              p => p.role === 'C' && p.id !== defendingTeam.liberoId
-            );
-          } else if (blockZone === 2) {
+          if (blockZone === 2) {
             // Posto 2: Opposti + Palleggiatori
             players = defendingTeam.roster.filter(
               p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeam.liberoId
@@ -112,34 +114,16 @@ export function RotationSequence({
                 Fase Ricezione Punto (RP) - {teamA.name} attacca
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm font-semibold mb-2" style={{ color: teamA.color }}>
-                    {teamA.name}
-                  </p>
-                  <InteractiveCourt
-                    team={teamA}
-                    assignment={assignmentA}
-                    rotation={rotation}
-                    phase="RP"
-                    color={teamA.color}
-                    opponentTeam={teamB}
-                    opponentAssignment={assignmentB}
-                    showAttackTrajectories={true}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold mb-2" style={{ color: teamB.color }}>
-                    {teamB.name} (Muro)
-                  </p>
-                  <InteractiveCourt
-                    team={teamB}
-                    assignment={assignmentB}
-                    rotation={rotation}
-                    phase="RP"
-                    color={teamB.color}
-                  />
-                </div>
+              <div className="mb-4">
+                <OpposedCourt
+                  teamA={teamA}
+                  teamB={teamB}
+                  assignmentA={assignmentA}
+                  assignmentB={assignmentB}
+                  rotation={rotation}
+                  phase="RP"
+                  attackingTeam="A"
+                />
               </div>
 
               {/* Riepilogo RP */}
@@ -162,34 +146,16 @@ export function RotationSequence({
                 Fase Break Point (BP) - {teamB.name} attacca
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm font-semibold mb-2" style={{ color: teamA.color }}>
-                    {teamA.name} (Muro)
-                  </p>
-                  <InteractiveCourt
-                    team={teamA}
-                    assignment={assignmentA}
-                    rotation={rotation}
-                    phase="BP"
-                    color={teamA.color}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold mb-2" style={{ color: teamB.color }}>
-                    {teamB.name}
-                  </p>
-                  <InteractiveCourt
-                    team={teamB}
-                    assignment={assignmentB}
-                    rotation={rotation}
-                    phase="BP"
-                    color={teamB.color}
-                    opponentTeam={teamA}
-                    opponentAssignment={assignmentA}
-                    showAttackTrajectories={true}
-                  />
-                </div>
+              <div className="mb-4">
+                <OpposedCourt
+                  teamA={teamA}
+                  teamB={teamB}
+                  assignmentA={assignmentA}
+                  assignmentB={assignmentB}
+                  rotation={rotation}
+                  phase="BP"
+                  attackingTeam="B"
+                />
               </div>
 
               {/* Riepilogo BP */}
