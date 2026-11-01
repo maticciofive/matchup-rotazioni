@@ -14,6 +14,13 @@ interface RotationSequenceFullProps {
   initialServingTeam: 'A' | 'B';
 }
 
+interface PlayerMatchupCount {
+  player: Player;
+  opponent: Player;
+  rotations: RotationLabel[];
+  count: number;
+}
+
 /**
  * Sequenza completa delle rotazioni con:
  * - Genera la sequenza teorica dei 12 stati con side-out alternati
@@ -37,6 +44,136 @@ export function RotationSequenceFull({
     servingTeam: initialServingTeam,
   };
   const sequence = generateTheoreticalSequence(initial);
+
+  // Calcola i matchup tra giocatori nella sequenza
+  const calculatePlayerMatchups = (): { teamA: PlayerMatchupCount[], teamB: PlayerMatchupCount[] } => {
+    const matchupsA: Map<string, PlayerMatchupCount> = new Map();
+    const matchupsB: Map<string, PlayerMatchupCount> = new Map();
+
+    // Itera sui 12 stati (escludendo l'ultimo che è duplicato)
+    for (let i = 0; i < sequence.length - 1; i++) {
+      const state = sequence[i];
+      const assignmentA = assignmentsA[state.rotationA];
+      const assignmentB = assignmentsB[state.rotationB];
+      const phaseA: 'BP' | 'RP' = state.servingTeam === 'A' ? 'BP' : 'RP';
+      const phaseB: 'BP' | 'RP' = state.servingTeam === 'B' ? 'BP' : 'RP';
+
+      // Per ogni giocatore di A in prima linea
+      [2, 3, 4].forEach(zone => {
+        const playerA = getPlayerById(teamA, assignmentA[zone as Zone]);
+        if (!playerA || playerA.role === 'L') return;
+
+        // Trova i muratori di B
+        const blockZones = ATTACK_TO_BLOCK_ZONES[zone as Zone];
+        blockZones.forEach(blockZone => {
+          let blockers: Player[] = [];
+          
+          if (blockZone === 3) {
+            // Centro: sempre centrali
+            blockers = teamB.roster.filter(p => p.role === 'C' && p.id !== teamB.liberoId);
+          } else if (phaseB === 'BP') {
+            // BP: muro per ruolo
+            if (blockZone === 2) {
+              blockers = teamB.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamB.liberoId);
+            } else {
+              blockers = teamB.roster.filter(p => p.role === 'S' && p.id !== teamB.liberoId);
+            }
+          } else if (state.rotationB === 'P1') {
+            // RP in P1: muro per posizione
+            const playerId = assignmentB[blockZone];
+            const blocker = getPlayerById(teamB, playerId);
+            blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
+          } else {
+            // RP in P2-P6: muro per ruolo
+            if (blockZone === 2) {
+              blockers = teamB.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamB.liberoId);
+            } else {
+              blockers = teamB.roster.filter(p => p.role === 'S' && p.id !== teamB.liberoId);
+            }
+          }
+
+          // Registra i matchup
+          blockers.forEach(blocker => {
+            const key = `${playerA.id}-${blocker.id}`;
+            if (!matchupsA.has(key)) {
+              matchupsA.set(key, {
+                player: playerA,
+                opponent: blocker,
+                rotations: [],
+                count: 0,
+              });
+            }
+            const matchup = matchupsA.get(key)!;
+            if (!matchup.rotations.includes(state.rotationA)) {
+              matchup.rotations.push(state.rotationA);
+            }
+            matchup.count++;
+          });
+        });
+      });
+
+      // Per ogni giocatore di B in prima linea
+      [2, 3, 4].forEach(zone => {
+        const playerB = getPlayerById(teamB, assignmentB[zone as Zone]);
+        if (!playerB || playerB.role === 'L') return;
+
+        // Trova i muratori di A
+        const blockZones = ATTACK_TO_BLOCK_ZONES[zone as Zone];
+        blockZones.forEach(blockZone => {
+          let blockers: Player[] = [];
+          
+          if (blockZone === 3) {
+            // Centro: sempre centrali
+            blockers = teamA.roster.filter(p => p.role === 'C' && p.id !== teamA.liberoId);
+          } else if (phaseA === 'BP') {
+            // BP: muro per ruolo
+            if (blockZone === 2) {
+              blockers = teamA.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamA.liberoId);
+            } else {
+              blockers = teamA.roster.filter(p => p.role === 'S' && p.id !== teamA.liberoId);
+            }
+          } else if (state.rotationA === 'P1') {
+            // RP in P1: muro per posizione
+            const playerId = assignmentA[blockZone];
+            const blocker = getPlayerById(teamA, playerId);
+            blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
+          } else {
+            // RP in P2-P6: muro per ruolo
+            if (blockZone === 2) {
+              blockers = teamA.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamA.liberoId);
+            } else {
+              blockers = teamA.roster.filter(p => p.role === 'S' && p.id !== teamA.liberoId);
+            }
+          }
+
+          // Registra i matchup
+          blockers.forEach(blocker => {
+            const key = `${playerB.id}-${blocker.id}`;
+            if (!matchupsB.has(key)) {
+              matchupsB.set(key, {
+                player: playerB,
+                opponent: blocker,
+                rotations: [],
+                count: 0,
+              });
+            }
+            const matchup = matchupsB.get(key)!;
+            if (!matchup.rotations.includes(state.rotationB)) {
+              matchup.rotations.push(state.rotationB);
+            }
+            matchup.count++;
+          });
+        });
+      });
+    }
+
+    return {
+      teamA: Array.from(matchupsA.values()).sort((a, b) => b.count - a.count),
+      teamB: Array.from(matchupsB.values()).sort((a, b) => b.count - a.count),
+    };
+  };
+
+  const playerMatchups = calculatePlayerMatchups();
   // Calcola in quali rotazioni un giocatore è in prima linea
   const getFirstLineRotations = (team: Team, assignments: Record<RotationLabel, ZoneAssignment>, playerId: string) => {
     const firstLineRotations: RotationLabel[] = [];
@@ -189,6 +326,80 @@ export function RotationSequenceFull({
                           </span>
                         );
                       })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteggio Matchup Giocatori */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h2 className="text-2xl font-bold mb-4">Conteggio Scontri tra Giocatori</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Numero di volte che ogni giocatore si scontra con gli avversari nella sequenza dei 12 stati.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Squadra A */}
+          <div>
+            <h3 className="text-xl font-bold mb-3" style={{ color: teamA.color }}>{teamA.name}</h3>
+            <div className="space-y-4">
+              {teamA.roster.filter(p => p.role !== 'L').map(player => {
+                const playerMatchupsList = playerMatchups.teamA.filter(m => m.player.id === player.id);
+                if (playerMatchupsList.length === 0) return null;
+
+                return (
+                  <div key={player.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="font-semibold mb-2">
+                      {player.number} {player.name} ({player.role})
+                    </div>
+                    <div className="space-y-1">
+                      {playerMatchupsList.map((matchup, idx) => (
+                        <div key={idx} className="text-sm flex justify-between items-center">
+                          <span>
+                            vs <span className="font-semibold">{matchup.opponent.number} {matchup.opponent.name}</span>
+                            <span className="text-gray-500"> ({matchup.opponent.role})</span>
+                          </span>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {matchup.count} {matchup.count === 1 ? 'volta' : 'volte'} in {matchup.rotations.join(', ')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Squadra B */}
+          <div>
+            <h3 className="text-xl font-bold mb-3" style={{ color: teamB.color }}>{teamB.name}</h3>
+            <div className="space-y-4">
+              {teamB.roster.filter(p => p.role !== 'L').map(player => {
+                const playerMatchupsList = playerMatchups.teamB.filter(m => m.player.id === player.id);
+                if (playerMatchupsList.length === 0) return null;
+
+                return (
+                  <div key={player.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="font-semibold mb-2">
+                      {player.number} {player.name} ({player.role})
+                    </div>
+                    <div className="space-y-1">
+                      {playerMatchupsList.map((matchup, idx) => (
+                        <div key={idx} className="text-sm flex justify-between items-center">
+                          <span>
+                            vs <span className="font-semibold">{matchup.opponent.number} {matchup.opponent.name}</span>
+                            <span className="text-gray-500"> ({matchup.opponent.role})</span>
+                          </span>
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                            {matchup.count} {matchup.count === 1 ? 'volta' : 'volte'} in {matchup.rotations.join(', ')}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
