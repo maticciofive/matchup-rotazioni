@@ -7,7 +7,9 @@ interface DualCourtViewProps {
   teamB: Team;
   assignmentA: ZoneAssignment;
   assignmentB: ZoneAssignment;
-  rotation: RotationLabel;
+  rotationA: RotationLabel;
+  rotationB: RotationLabel;
+  servingTeam: 'A' | 'B';
 }
 
 type Orientation = 'horizontal' | 'vertical';
@@ -26,7 +28,9 @@ export function DualCourtView({
   teamB,
   assignmentA,
   assignmentB,
-  rotation,
+  rotationA,
+  rotationB,
+  servingTeam,
 }: DualCourtViewProps) {
   const [orientation, setOrientation] = useState<Orientation>('horizontal');
   // Disposizioni standard delle zone nella pallavolo
@@ -259,7 +263,9 @@ export function DualCourtView({
       {/* Controlli */}
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold">Rotazione {rotation}</h3>
+          <h3 className="text-lg font-bold">
+            {rotationA} [{teamA.name}] {servingTeam === 'A' ? 'BP' : 'RP'} - {rotationB} [{teamB.name}] {servingTeam === 'B' ? 'BP' : 'RP'}
+          </h3>
           <div className="flex gap-2">
             <button
               onClick={() => setOrientation('horizontal')}

@@ -2,17 +2,22 @@ import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Zone, Player } fro
 import { DualCourtView } from './DualCourtView';
 import { MatchupSummaryDetailed } from './MatchupSummaryDetailed';
 import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
+import { generateTheoreticalSequence, type SequenceState } from '../engine/rotations';
 
 interface RotationSequenceFullProps {
   teamA: Team;
   teamB: Team;
   assignmentsA: Record<RotationLabel, ZoneAssignment>;
   assignmentsB: Record<RotationLabel, ZoneAssignment>;
+  initialRotationA: RotationLabel;
+  initialRotationB: RotationLabel;
+  initialServingTeam: 'A' | 'B';
 }
 
 /**
  * Sequenza completa delle rotazioni con:
- * - Due campi separati (RP e BP) per ogni rotazione
+ * - Genera la sequenza teorica dei 12 stati con side-out alternati
+ * - Per ogni stato mostra i campi contrapposti con le rotazioni effettive
  * - Dettaglio dei matchup per ogni giocatore
  * - Analisi di quando ogni giocatore è in prima linea
  */
@@ -21,7 +26,17 @@ export function RotationSequenceFull({
   teamB,
   assignmentsA,
   assignmentsB,
+  initialRotationA,
+  initialRotationB,
+  initialServingTeam,
 }: RotationSequenceFullProps) {
+  // Genera la sequenza teorica dei 12 stati
+  const initial: SequenceState = {
+    rotationA: initialRotationA,
+    rotationB: initialRotationB,
+    servingTeam: initialServingTeam,
+  };
+  const sequence = generateTheoreticalSequence(initial);
   // Calcola in quali rotazioni un giocatore è in prima linea
   const getFirstLineRotations = (team: Team, assignments: Record<RotationLabel, ZoneAssignment>, playerId: string) => {
     const firstLineRotations: RotationLabel[] = [];
@@ -191,21 +206,38 @@ export function RotationSequenceFull({
         assignmentsB={assignmentsB}
       />
 
-      {/* Sequenza Rotazioni con Campi */}
+      {/* Sequenza Teorica dei 12 Stati con Campi */}
+      <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+        <h2 className="text-2xl font-bold mb-4">Sequenza Teorica dei 12 Stati</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Partendo da {initialRotationA} [{teamA.name}] {initialServingTeam === 'A' ? 'BP' : 'RP'} e {initialRotationB} [{teamB.name}] {initialServingTeam === 'B' ? 'BP' : 'RP'}, 
+          la sequenza mostra tutti i possibili stati con side-out alternati.
+        </p>
+        <p className="text-xs text-gray-500 mb-6 italic">
+          Le rotazioni di A e B possono essere DIVERSE perché dipendono dalla configurazione iniziale e dalla sequenza dei side-out.
+        </p>
+      </div>
+
       <div className="space-y-8">
-        {ROTATION_ORDER.map(rotation => {
-          const assignmentA = assignmentsA[rotation];
-          const assignmentB = assignmentsB[rotation];
+        {sequence.slice(0, -1).map((state, index) => {
+          const assignmentA = assignmentsA[state.rotationA];
+          const assignmentB = assignmentsB[state.rotationB];
 
           return (
-            <DualCourtView
-              key={rotation}
-              teamA={teamA}
-              teamB={teamB}
-              assignmentA={assignmentA}
-              assignmentB={assignmentB}
-              rotation={rotation}
-            />
+            <div key={index} className="border-2 border-gray-300 rounded-lg p-4">
+              <h3 className="text-lg font-bold mb-3 text-center">
+                Stato {index + 1}: {state.rotationA} [{teamA.name}] {state.servingTeam === 'A' ? 'BP' : 'RP'} - {state.rotationB} [{teamB.name}] {state.servingTeam === 'B' ? 'BP' : 'RP'}
+              </h3>
+              <DualCourtView
+                teamA={teamA}
+                teamB={teamB}
+                assignmentA={assignmentA}
+                assignmentB={assignmentB}
+                rotationA={state.rotationA}
+                rotationB={state.rotationB}
+                servingTeam={state.servingTeam}
+              />
+            </div>
           );
         })}
       </div>
