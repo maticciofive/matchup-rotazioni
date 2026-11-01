@@ -25,13 +25,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          echo "📦 Installazione dipendenze..."
+          npm ci || npm install
 
       - name: Build
-        run: npm run build
+        run: |
+          echo "🔨 Build dell'applicazione..."
+          npm run build
+          echo "✅ Build completato"
+          echo "📂 Contenuto della cartella dist:"
+          ls -la dist/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
