@@ -2,6 +2,8 @@
 
 Web app in italiano per l'analisi e il confronto delle rotazioni di due squadre di pallavolo durante un set.
 
+**Demo:** https://maticciofive.github.io/matchup-rotazioni/
+
 ## Funzionalità
 
 - **Configurazione squadre**: inserimento rose, sestetti, libero, colori identificativi
