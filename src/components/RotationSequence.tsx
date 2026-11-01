@@ -1,6 +1,6 @@
 import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Player, Zone } from '../types';
 import { OpposedCourt } from './OpposedCourt';
-import { getPlayerById, ATTACK_TO_BLOCK_ZONES } from '../engine/matchup';
+import { getPlayerById, ATTACK_TO_BLOCK_ZONES, getCenterBlockerInRotation } from '../engine/matchup';
 
 interface RotationSequenceProps {
   teamA: Team;
@@ -34,16 +34,17 @@ export function RotationSequence({
       if (!attacker || attacker.role === 'L') return;
 
       const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone];
+      
+      // Trova il centrale in prima linea nella squadra difendente
+      const centerBlocker = getCenterBlockerInRotation(defendingTeam, defendingAssignment, rotation);
+      
       const blockers = blockZones.map((blockZone: Zone) => {
         let players: Player[];
         
         // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
         if (blockZone === 3) {
-          // CENTRO: SEMPRE centrali (indipendentemente dalla fase e rotazione)
-          // I centrali attaccano e murano sempre dal centro
-          players = defendingTeam.roster.filter(
-            p => p.role === 'C' && p.id !== defendingTeam.liberoId
-          );
+          // CENTRO: Solo il centrale in prima linea in questa rotazione
+          players = centerBlocker ? [centerBlocker] : [];
         } else if (phase === 'BP') {
           // FASE BREAK POINT: muro per RUOLO
           if (blockZone === 2) {

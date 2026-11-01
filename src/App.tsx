@@ -15,7 +15,7 @@ import {
 } from './engine/persistence';
 import { validateAnalysis } from './engine/validation';
 import {
-  calculateMatchups, calculateCompleteMatchups, isLiberoInStartingSix, isLibero, ATTACK_TO_BLOCK_ZONE, ATTACK_TO_BLOCK_ZONES
+  calculateMatchups, calculateCompleteMatchups, isLiberoInStartingSix, isLibero, ATTACK_TO_BLOCK_ZONE, ATTACK_TO_BLOCK_ZONES, getCenterBlockerInRotation
 } from './engine/matchup';
 import { CourtView } from './components/CourtView';
 import { MatchupSummary } from './components/MatchupSummary';
@@ -1252,7 +1252,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   // Ottieni TUTTI i giocatori che possono fare muro in una posizione
   // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
   // La logica cambia in base alla fase di gioco:
-  // - Posto 3: SEMPRE centrali (indipendentemente dalla fase)
+  // - Posto 3: Solo il centrale in prima linea in questa rotazione
   // - BP (Break Point): muro per RUOLO
   //   - Posto 2: Opposti + Palleggiatori
   //   - Posto 4: Schiacciatori
@@ -1266,9 +1266,10 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     assignment?: ZoneAssignment
   ): Player[] => {
     if (blockZone === 3) {
-      // CENTRO: SEMPRE centrali (indipendentemente dalla fase e rotazione)
-      // I centrali attaccano e murano sempre dal centro
-      return team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
+      // CENTRO: Solo il centrale in prima linea in questa rotazione
+      if (!assignment) return [];
+      const centerBlocker = getCenterBlockerInRotation(team, assignment, rotation);
+      return centerBlocker ? [centerBlocker] : [];
     } else if (phase === 'BP') {
       // FASE BREAK POINT: muro per RUOLO
       if (blockZone === 2) {
