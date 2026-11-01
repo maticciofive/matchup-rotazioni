@@ -1898,6 +1898,9 @@ function SequenceFullView({ data }: { data: AnalysisData }) {
         teamB={teamB}
         assignmentsA={assignmentsA}
         assignmentsB={assignmentsB}
+        initialRotationA={data.setConfig.rotationA}
+        initialRotationB={data.setConfig.rotationB}
+        initialServingTeam={data.setConfig.servingTeam}
       />
     </div>
   );
