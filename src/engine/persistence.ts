@@ -1,0 +1,172 @@
+import { AnalysisData, Team, Player, Zone, ZoneAssignment, RotationLabel, TacticalSetup, MatchupConfig, SetConfig, SimulationState } from '../types';
+
+const STORAGE_KEY = 'volleyball_rotation_analysis';
+const SCHEMA_VERSION = '1.0.0';
+
+// === Persistence ===
+
+export function saveToLocalStorage(data: AnalysisData): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Errore nel salvataggio:', e);
+  }
+}
+
+export function loadFromLocalStorage(): AnalysisData | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as AnalysisData;
+    if (data.version !== SCHEMA_VERSION) {
+      console.warn('Versione schema diversa, i dati potrebbero non essere compatibili');
+    }
+    return data;
+  } catch (e) {
+    console.error('Errore nel caricamento:', e);
+    return null;
+  }
+}
+
+export function clearLocalStorage(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function exportToJSON(data: AnalysisData): string {
+  return JSON.stringify(data, null, 2);
+}
+
+export function importFromJSON(json: string): AnalysisData | null {
+  try {
+    const data = JSON.parse(json) as AnalysisData;
+    if (!data.version || !data.teamA || !data.teamB || !data.setConfig) {
+      throw new Error('File JSON non valido: struttura dati incompleta');
+    }
+    if (!data.teamA.name || !data.teamB.name) {
+      throw new Error('File JSON non valido: nomi squadre mancanti');
+    }
+    return data;
+  } catch (e) {
+    console.error('Errore importazione:', e);
+    return null;
+  }
+}
+
+// === Demo Data ===
+
+export function createDemoData(): AnalysisData {
+  const teamA: Team = {
+    id: 'team-a',
+    name: 'VESUVIO',
+    shortName: 'VES',
+    color: '#dc2626',
+    roster: [
+      { id: 'a-p', number: 1, name: 'Mario Bianchi', role: 'P', tacticalLabel: '' },
+      { id: 'a-opp', number: 7, name: 'Luigi Rossi', role: 'OPP', tacticalLabel: '' },
+      { id: 'a-s1', number: 3, name: 'Paolo Verdi', role: 'S', tacticalLabel: 'S1' },
+      { id: 'a-s2', number: 9, name: 'Marco Neri', role: 'S', tacticalLabel: 'S2' },
+      { id: 'a-c1', number: 11, name: 'Giovanni Russo', role: 'C', tacticalLabel: 'C1' },
+      { id: 'a-c2', number: 14, name: 'Antonio Ferrara', role: 'C', tacticalLabel: 'C2' },
+      { id: 'a-l', number: 5, name: 'Salvatore Esposito', role: 'L', tacticalLabel: '' },
+    ],
+    startingSix: [null, null, null, null, null, null], // will be set below
+    liberoId: 'a-l',
+    initialRotation: 'P1',
+  };
+
+  // Sestetto in P1: setter in zone 1
+  // P1 layout: Z1=P, Z2=C1, Z3=S1, Z4=OPP, Z5=C2, Z6=S2
+  teamA.startingSix = ['a-p', 'a-c1', 'a-s1', 'a-opp', 'a-c2', 'a-s2'];
+  // Index 0 = zone 1, index 1 = zone 2, ..., index 5 = zone 6
+
+  const teamB: Team = {
+    id: 'team-b',
+    name: 'TIRRENO',
+    shortName: 'TIR',
+    color: '#2563eb',
+    roster: [
+      { id: 'b-p', number: 4, name: 'Francesco Marino', role: 'P', tacticalLabel: '' },
+      { id: 'b-opp', number: 12, name: 'Andrea Greco', role: 'OPP', tacticalLabel: '' },
+      { id: 'b-s1', number: 6, name: 'Stefano Conti', role: 'S', tacticalLabel: 'S1' },
+      { id: 'b-s2', number: 8, name: 'Davide De Luca', role: 'S', tacticalLabel: 'S2' },
+      { id: 'b-c1', number: 10, name: 'Roberto Fontana', role: 'C', tacticalLabel: 'C1' },
+      { id: 'b-c2', number: 15, name: 'Nicola Mancini', role: 'C', tacticalLabel: 'C2' },
+      { id: 'b-l', number: 2, name: 'Claudio Barbieri', role: 'L', tacticalLabel: '' },
+    ],
+    startingSix: [null, null, null, null, null, null],
+    liberoId: 'b-l',
+    initialRotation: 'P3',
+  };
+
+  // Sestetto B in P1: setter in zone 1
+  teamB.startingSix = ['b-p', 'b-c1', 'b-s1', 'b-opp', 'b-c2', 'b-s2'];
+
+  const setConfig: SetConfig = {
+    setName: 'Set 1',
+    rotationA: 'P1',
+    rotationB: 'P3',
+    servingTeam: 'A',
+  };
+
+  // Demo tactical setups
+  const tacticalSetupsA: TacticalSetup[] = generateDemoTacticalSetups(teamA);
+  const tacticalSetupsB: TacticalSetup[] = generateDemoTacticalSetups(teamB);
+
+  const simulation: SimulationState = {
+    events: [],
+    scoreA: 0,
+    scoreB: 0,
+    servingTeam: setConfig.servingTeam,
+    rotationA: setConfig.rotationA,
+    rotationB: setConfig.rotationB,
+  };
+
+  return {
+    version: SCHEMA_VERSION,
+    teamA,
+    teamB,
+    setConfig,
+    tacticalSetupsA,
+    tacticalSetupsB,
+    matchupConfigs: [],
+    simulation,
+  };
+}
+
+function generateDemoTacticalSetups(team: Team): TacticalSetup[] {
+  const rotations: RotationLabel[] = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
+  const setups: TacticalSetup[] = [];
+  
+  for (const rot of rotations) {
+    for (const side of ['BP', 'RP'] as const) {
+      setups.push({
+        rotation: rot,
+        side,
+        attackPositions: {},
+        blockPositions: {},
+        backRowAttacks: {},
+        blockAssists: {},
+        notes: 'Assetto dimostrativo — modificare secondo la propria squadra',
+      });
+    }
+  }
+  
+  return setups;
+}
+
+// === Helper: Build zone assignment from startingSix array ===
+
+export function buildZoneAssignment(startingSix: (string | null)[]): ZoneAssignment {
+  return {
+    1: startingSix[0] ?? null,
+    2: startingSix[1] ?? null,
+    3: startingSix[2] ?? null,
+    4: startingSix[3] ?? null,
+    5: startingSix[4] ?? null,
+    6: startingSix[5] ?? null,
+  } as ZoneAssignment;
+}
+
+export function zoneAssignmentToArray(assignment: ZoneAssignment): (string | null)[] {
+  return [assignment[1], assignment[2], assignment[3], assignment[4], assignment[5], assignment[6]];
+}
