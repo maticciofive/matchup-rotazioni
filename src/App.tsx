@@ -1152,11 +1152,15 @@ function PrintView({ data }: { data: AnalysisData }) {
 }
 
 // === Matchup View ===
+type AttackMode = 'normal' | 'special';
+
 function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: AnalysisData) => void }) {
   const { teamA, teamB, setConfig } = data;
   const [selectedRotA, setSelectedRotA] = useState<RotationLabel>(setConfig.rotationA);
   const [selectedRotB, setSelectedRotB] = useState<RotationLabel>(setConfig.rotationB);
   const [servingTeam, setServingTeam] = useState<'A' | 'B'>(setConfig.servingTeam);
+  const [modeA, setModeA] = useState<AttackMode>('normal');
+  const [modeB, setModeB] = useState<AttackMode>('normal');
   const [evaluation, setEvaluation] = useState<'favorable' | 'balanced' | 'unfavorable' | 'not_evaluated'>('not_evaluated');
 
   const assignmentA = getAssignmentForRotation(buildZoneAssignment(teamA.startingSix), selectedRotA);
@@ -1165,31 +1169,67 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   const bpA = servingTeam === 'A' ? 'BP' : 'RP';
   const bpB = servingTeam === 'B' ? 'BP' : 'RP';
 
-  // Get attackers from tactical setup or fall back to rotation position
-  const getAttackerA = (zone: Zone): Player | null => {
-    const setup = data.tacticalSetupsA.find(s => s.rotation === selectedRotA && s.side === bpA);
-    if (setup?.attackPositions[zone]) {
-      return getPlayerById(teamA, setup.attackPositions[zone]!);
-    }
-    return getPlayerById(teamA, assignmentA[zone]);
+  // Helper: trova il giocatore per ruolo e label tattica
+  const findByRole = (team: Team, role: string, label?: string): Player | null => {
+    return team.roster.find(p => p.role === role && (!label || p.tacticalLabel === label)) || null;
   };
 
-  const getAttackerB = (zone: Zone): Player | null => {
-    const setup = data.tacticalSetupsB.find(s => s.rotation === selectedRotB && s.side === bpB);
-    if (setup?.attackPositions[zone]) {
-      return getPlayerById(teamB, setup.attackPositions[zone]!);
-    }
-    return getPlayerById(teamB, assignmentB[zone]);
+  // Helper: trova il giocatore in una zona
+  const playerInZone = (team: Team, assignment: ZoneAssignment, zone: Zone): Player | null => {
+    return getPlayerById(team, assignment[zone]);
   };
 
-  // Blockers are front row of opposing team
-  // Attack from Z4 → block at Z2 of opponent
-  // Attack from Z3 → block at Z3 of opponent
-  // Attack from Z2 → block at Z4 of opponent
-  const getBlockerForAttack = (attackZone: Zone, defendingAssignment: ZoneAssignment, defendingTeam: Team): Player | null => {
+  // Calcola attaccante in base a modalità e fase
+  const getAttacker = (
+    team: Team,
+    assignment: ZoneAssignment,
+    zone: Zone,
+    phase: 'BP' | 'RP',
+    mode: AttackMode
+  ): Player | null => {
+    if (phase === 'RP') {
+      // In ricezione punto:
+      // Z4 = S2, Z3 = Centrale, Z2 = S1 o Opposto (dipende dalla modalità)
+      if (zone === 4) return findByRole(team, 'S', 'S2');
+      if (zone === 3) {
+        // Centrale: preferisci C1, poi C2
+        return findByRole(team, 'C', 'C1') || findByRole(team, 'C');
+      }
+      if (zone === 2) {
+        // In RP, Z2 dipende dalla modalità
+        if (mode === 'normal') return findByRole(team, 'S', 'S1');
+        return findByRole(team, 'OPP');
+      }
+    } else {
+      // In break point:
+      // Z4 = Opposto (normal) o S1 (special)
+      // Z3 = Centrale
+      // Z2 = S1 (normal) o Opposto (special)
+      if (zone === 4) {
+        return mode === 'normal' ? findByRole(team, 'OPP') : findByRole(team, 'S', 'S1');
+      }
+      if (zone === 3) {
+        return findByRole(team, 'C', 'C1') || findByRole(team, 'C');
+      }
+      if (zone === 2) {
+        return mode === 'normal' ? findByRole(team, 'S', 'S1') : findByRole(team, 'OPP');
+      }
+    }
+    return playerInZone(team, assignment, zone);
+  };
+
+  // Muratore di riferimento (in base alla zona di attacco avversaria)
+  const getBlocker = (
+    team: Team,
+    assignment: ZoneAssignment,
+    attackZone: Zone
+  ): Player | null => {
+    // Attacco da Z4 → muro in Z2
+    // Attacco da Z3 → muro in Z3
+    // Attacco da Z2 → muro in Z4
     const blockZoneMap: Record<number, Zone> = { 4: 2, 3: 3, 2: 4 };
     const blockZone = blockZoneMap[attackZone] || 3;
-    return getPlayerById(defendingTeam, defendingAssignment[blockZone]);
+    return playerInZone(team, assignment, blockZone);
   };
 
   const attackZones: Zone[] = [4, 3, 2];
@@ -1199,36 +1239,83 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
       <div className="bg-white rounded-xl shadow-sm border p-5">
         <h2 className="text-xl font-bold mb-4">Matchup Attacco–Muro</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Configura e visualizza i confronti attacco-muro per ogni coppia di rotazioni.
-          I nomi derivano dagli assetti tattici configurati. Se l'assetto manca, viene mostrato "Da configurare".
+          Scegli rotazioni, squadra al servizio e modalità di attacco per visualizzare i confronti.
         </p>
 
         {/* Selectors */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Squadra A */}
+          <div className="border rounded-lg p-4" style={{ borderColor: teamA.color }}>
+            <h3 className="font-bold mb-3" style={{ color: teamA.color }}>{teamA.name}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500">Rotazione</label>
+                <select value={selectedRotA} onChange={e => setSelectedRotA(e.target.value as RotationLabel)}
+                  className="w-full border rounded px-3 py-2">
+                  {ROTATION_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Modalità attacco</label>
+                <select value={modeA} onChange={e => setModeA(e.target.value as AttackMode)}
+                  className="w-full border rounded px-3 py-2">
+                  <option value="normal">P1 normale (S1 in Z2, Opp in Z4)</option>
+                  <option value="special">Special (S1 in Z4, Opp in Z2)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Squadra B */}
+          <div className="border rounded-lg p-4" style={{ borderColor: teamB.color }}>
+            <h3 className="font-bold mb-3" style={{ color: teamB.color }}>{teamB.name}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500">Rotazione</label>
+                <select value={selectedRotB} onChange={e => setSelectedRotB(e.target.value as RotationLabel)}
+                  className="w-full border rounded px-3 py-2">
+                  {ROTATION_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Modalità attacco</label>
+                <select value={modeB} onChange={e => setModeB(e.target.value as AttackMode)}
+                  className="w-full border rounded px-3 py-2">
+                  <option value="normal">P1 normale (S1 in Z2, Opp in Z4)</option>
+                  <option value="special">Special (S1 in Z4, Opp in Z2)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Servizio e valutazione */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="text-xs text-gray-500">Rotazione {teamA.name}</label>
-            <select value={selectedRotA} onChange={e => setSelectedRotA(e.target.value as RotationLabel)}
-              className="w-full border rounded px-3 py-2">
-              {ROTATION_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <label className="text-xs text-gray-500">Squadra al servizio (BP)</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setServingTeam('A')}
+                className={`flex-1 py-2 rounded font-bold text-sm ${
+                  servingTeam === 'A' ? 'text-white' : 'bg-gray-200 text-gray-700'
+                }`}
+                style={servingTeam === 'A' ? { backgroundColor: teamA.color } : {}}
+              >
+                {teamA.name} (BP)
+              </button>
+              <button
+                onClick={() => setServingTeam('B')}
+                className={`flex-1 py-2 rounded font-bold text-sm ${
+                  servingTeam === 'B' ? 'text-white' : 'bg-gray-200 text-gray-700'
+                }`}
+                style={servingTeam === 'B' ? { backgroundColor: teamB.color } : {}}
+              >
+                {teamB.name} (BP)
+              </button>
+            </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500">Rotazione {teamB.name}</label>
-            <select value={selectedRotB} onChange={e => setSelectedRotB(e.target.value as RotationLabel)}
-              className="w-full border rounded px-3 py-2">
-              {ROTATION_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">Squadra al servizio</label>
-            <select value={servingTeam} onChange={e => setServingTeam(e.target.value as 'A' | 'B')}
-              className="w-full border rounded px-3 py-2">
-              <option value="A">{teamA.name}</option>
-              <option value="B">{teamB.name}</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-gray-500">Valutazione</label>
+            <label className="text-xs text-gray-500">Valutazione matchup</label>
             <select value={evaluation} onChange={e => setEvaluation(e.target.value as typeof evaluation)}
               className="w-full border rounded px-3 py-2">
               <option value="not_evaluated">Non valutato</option>
@@ -1239,7 +1326,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           </div>
         </div>
 
-        {/* Header */}
+        {/* Header matchup */}
         <div className="p-3 bg-gray-50 rounded-lg mb-6">
           <p className="font-mono text-sm text-center">
             {selectedRotA} [{teamA.name}] {bpA} → {selectedRotB} [{teamB.name}] {bpB}
@@ -1252,6 +1339,16 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
               Valutazione: {evaluation === 'favorable' ? 'Favorevole' : evaluation === 'balanced' ? 'Equilibrato' : 'Sfavorevole'} (inserita dall'utente)
             </p>
           )}
+        </div>
+
+        {/* Sestetti contrapposti */}
+        <div className="mb-6">
+          <h3 className="font-bold text-sm mb-3">Sestetti contrapposti (prime linee contro)</h3>
+          <OpposedLineups
+            teamA={teamA} assignmentA={assignmentA} modeA={modeA} phaseA={bpA}
+            teamB={teamB} assignmentB={assignmentB} modeB={modeB} phaseB={bpB}
+            getAttacker={getAttacker}
+          />
         </div>
 
         {/* Attack A vs Block B */}
@@ -1271,19 +1368,15 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
               </thead>
               <tbody>
                 {attackZones.map(zone => {
-                  const attacker = getAttackerA(zone);
-                  const blocker = getBlockerForAttack(zone, assignmentB, teamB);
-                  const hasSetup = data.tacticalSetupsA.some(s => 
-                    s.rotation === selectedRotA && s.side === bpA && s.attackPositions[zone]
-                  );
+                  const attacker = getAttacker(teamA, assignmentA, zone, bpA, modeA);
+                  const blocker = getBlocker(teamB, assignmentB, zone);
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
                       <td className="border p-2">{blocker ? formatPlayerCompact(blocker) : 'Da configurare'}</td>
                       <td className="border p-2 text-gray-500">
-                        {!hasSetup && !attacker ? 'Assetto non configurato' : 
-                         `Attacco da Z${zone} → muro Z${zone === 4 ? 2 : zone === 2 ? 4 : 3} avversario`}
+                        Attacco da Z{zone} → muro Z{zone === 4 ? 2 : zone === 2 ? 4 : 3} avversario
                       </td>
                     </tr>
                   );
@@ -1313,19 +1406,15 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
               </thead>
               <tbody>
                 {attackZones.map(zone => {
-                  const attacker = getAttackerB(zone);
-                  const blocker = getBlockerForAttack(zone, assignmentA, teamA);
-                  const hasSetup = data.tacticalSetupsB.some(s => 
-                    s.rotation === selectedRotB && s.side === bpB && s.attackPositions[zone]
-                  );
+                  const attacker = getAttacker(teamB, assignmentB, zone, bpB, modeB);
+                  const blocker = getBlocker(teamA, assignmentA, zone);
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2 font-mono">Zona {zone}</td>
                       <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
                       <td className="border p-2">{blocker ? formatPlayerCompact(blocker) : 'Da configurare'}</td>
                       <td className="border p-2 text-gray-500">
-                        {!hasSetup && !attacker ? 'Assetto non configurato' : 
-                         `Attacco da Z${zone} → muro Z${zone === 4 ? 2 : zone === 2 ? 4 : 3} avversario`}
+                        Attacco da Z{zone} → muro Z{zone === 4 ? 2 : zone === 2 ? 4 : 3} avversario
                       </td>
                     </tr>
                   );
@@ -1377,6 +1466,111 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
         <p className="text-xs text-gray-500 mt-2 italic">
           Il libero non è incluso nei matchup di attacco o muro.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// === Sestetti contrapposti ===
+function OpposedLineups({
+  teamA, assignmentA, modeA, phaseA,
+  teamB, assignmentB, modeB, phaseB,
+  getAttacker
+}: {
+  teamA: Team; assignmentA: ZoneAssignment; modeA: AttackMode; phaseA: 'BP' | 'RP';
+  teamB: Team; assignmentB: ZoneAssignment; modeB: AttackMode; phaseB: 'BP' | 'RP';
+  getAttacker: (team: Team, assignment: ZoneAssignment, zone: Zone, phase: 'BP' | 'RP', mode: AttackMode) => Player | null;
+}) {
+  // Squadra A (sinistra): vista dal proprio fondo campo verso la rete
+  // Squadra B (destra): vista dal proprio fondo campo verso la rete
+  // Le prime linee sono contro (verso il centro)
+  
+  const frontA = getFrontRowZones().map(z => ({
+    zone: z,
+    player: getPlayerById(teamA, assignmentA[z]),
+    attacker: getAttacker(teamA, assignmentA, z, phaseA, modeA),
+  }));
+  
+  const frontB = getFrontRowZones().map(z => ({
+    zone: z,
+    player: getPlayerById(teamB, assignmentB[z]),
+    attacker: getAttacker(teamB, assignmentB, z, phaseB, modeB),
+  }));
+
+  const backA = getBackRowZones().map(z => ({
+    zone: z,
+    player: getPlayerById(teamA, assignmentA[z]),
+  }));
+  
+  const backB = getBackRowZones().map(z => ({
+    zone: z,
+    player: getPlayerById(teamB, assignmentB[z]),
+  }));
+
+  return (
+    <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
+      {/* Squadra A - sinistra */}
+      <div className="grid grid-cols-2">
+        {/* Team A */}
+        <div className="p-3" style={{ backgroundColor: teamA.color + '10' }}>
+          <div className="text-center font-bold mb-2" style={{ color: teamA.color }}>
+            {teamA.name} — {phaseA}
+          </div>
+          <div className="text-xs text-gray-500 text-center mb-1">Prima linea (attacco)</div>
+          <div className="space-y-1">
+            {frontA.map(({ zone, player, attacker }) => (
+              <div key={zone} className="flex justify-between items-center bg-white rounded px-2 py-1 text-xs border">
+                <span className="text-gray-400 font-mono">Z{zone}</span>
+                <span className="font-medium">
+                  {attacker ? `⚡ ${formatPlayerCompact(attacker)}` : player ? formatPlayerCompact(player) : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="text-xs text-gray-500 text-center mt-2 mb-1">Seconda linea</div>
+          <div className="space-y-1">
+            {backA.map(({ zone, player }) => (
+              <div key={zone} className="flex justify-between items-center bg-white/60 rounded px-2 py-1 text-xs border border-dashed">
+                <span className="text-gray-400 font-mono">Z{zone}</span>
+                <span>{player ? formatPlayerCompact(player) : '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Team B */}
+        <div className="p-3" style={{ backgroundColor: teamB.color + '10' }}>
+          <div className="text-center font-bold mb-2" style={{ color: teamB.color }}>
+            {teamB.name} — {phaseB}
+          </div>
+          <div className="text-xs text-gray-500 text-center mb-1">Prima linea (attacco)</div>
+          <div className="space-y-1">
+            {frontB.map(({ zone, player, attacker }) => (
+              <div key={zone} className="flex justify-between items-center bg-white rounded px-2 py-1 text-xs border">
+                <span className="font-medium">
+                  {attacker ? `⚡ ${formatPlayerCompact(attacker)}` : player ? formatPlayerCompact(player) : '—'}
+                </span>
+                <span className="text-gray-400 font-mono">Z{zone}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-xs text-gray-500 text-center mt-2 mb-1">Seconda linea</div>
+          <div className="space-y-1">
+            {backB.map(({ zone, player }) => (
+              <div key={zone} className="flex justify-between items-center bg-white/60 rounded px-2 py-1 text-xs border border-dashed">
+                <span>{player ? formatPlayerCompact(player) : '—'}</span>
+                <span className="text-gray-400 font-mono">Z{zone}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Rete al centro */}
+      <div className="border-t-2 border-dashed border-gray-400 relative">
+        <div className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2 text-xs text-gray-500 font-bold">
+          RETE
+        </div>
       </div>
     </div>
   );

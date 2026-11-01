@@ -13,7 +13,12 @@ Web app in italiano per l'analisi e il confronto delle rotazioni di due squadre 
 - **Simulazione gara**: punteggio, rotazioni, servizio, cronologia eventi
 - **Matrice 6×6**: tutte le 36 combinazioni di rotazioni
 - **Assetti tattici**: configurazione attacco/muro per ogni rotazione e fase
-- **Matchup attacco-muro**: confronto configurabile per canale
+- **Matchup attacco-muro**: confronto configurabile per canale con:
+  - **Scelta squadra al servizio** (BP/RP) per ogni confronto
+  - **Modalità P1 normale**: S1 attacca da posto 2, Opposto da posto 4
+  - **Modalità Special**: S1 attacca da posto 4, Opposto da posto 2
+  - **In ricezione punto (RP)**: centrale sempre al centro (Z3), S2 sempre in posto 4
+  - **Sestetti contrapposti**: visualizzazione con prime linee contro
 - **Salvataggio**: localStorage, esportazione/importazione JSON
 - **Stampa**: report stampabile con tutte le informazioni
 
