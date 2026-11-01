@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  AnalysisData, Team, Player, Zone, RotationLabel,
-  ROTATION_ORDER, SimulationState, TacticalSetup
+  AnalysisData, Team, Player, Zone, ZoneAssignment, RotationLabel,
+  ROTATION_ORDER, SetConfig, SimulationState, TacticalSetup
 } from './types';
 import {
   getAssignmentForRotation,
