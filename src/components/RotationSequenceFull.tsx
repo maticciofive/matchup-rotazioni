@@ -46,6 +46,7 @@ export function RotationSequenceFull({
   const sequence = generateTheoreticalSequence(initial);
 
   // Calcola i matchup tra giocatori nella sequenza
+  // Ogni giocatore sta in prima linea per 3 rotazioni consecutive
   const calculatePlayerMatchups = (): { teamA: PlayerMatchupCount[], teamB: PlayerMatchupCount[] } => {
     const matchupsA: Map<string, PlayerMatchupCount> = new Map();
     const matchupsB: Map<string, PlayerMatchupCount> = new Map();
@@ -58,50 +59,48 @@ export function RotationSequenceFull({
       const phaseA: 'BP' | 'RP' = state.servingTeam === 'A' ? 'BP' : 'RP';
       const phaseB: 'BP' | 'RP' = state.servingTeam === 'B' ? 'BP' : 'RP';
 
-      // Per ogni giocatore di A in prima linea
-      [2, 3, 4].forEach(zone => {
-        const playerA = getPlayerById(teamA, assignmentA[zone as Zone]);
-        if (!playerA || playerA.role === 'L') return;
+      // Per ogni giocatore di A in prima linea (attaccante)
+      [2, 3, 4].forEach(attackZone => {
+        const attackerA = getPlayerById(teamA, assignmentA[attackZone as Zone]);
+        if (!attackerA || attackerA.role === 'L') return;
 
-        // Trova i muratori di B
-        const blockZones = ATTACK_TO_BLOCK_ZONES[zone as Zone];
+        // Determina le zone di muro in base alla zona di attacco
+        const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone as Zone];
         
-        // Trova il centrale in prima linea nella squadra B
-        const centerBlockerB = getCenterBlockerInRotation(teamB, assignmentB, state.rotationB);
-        
+        // Per ogni zona di muro, trova i muratori di B
         blockZones.forEach(blockZone => {
           let blockers: Player[] = [];
           
           if (blockZone === 3) {
-            // Centro: Solo il centrale in prima linea in questa rotazione
+            // Posto 3: Solo il centrale in prima linea in questa rotazione
+            const centerBlockerB = getCenterBlockerInRotation(teamB, assignmentB, state.rotationB);
             blockers = centerBlockerB ? [centerBlockerB] : [];
           } else if (phaseB === 'BP') {
             // BP: muro per ruolo
             if (blockZone === 2) {
-              blockers = teamB.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamB.liberoId);
+              // Posto 2: Chi è in Z2 (in BP è OPP o P)
+              const playerId = assignmentB[2];
+              const blocker = getPlayerById(teamB, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
             } else {
-              blockers = teamB.roster.filter(p => p.role === 'S' && p.id !== teamB.liberoId);
+              // Posto 4: Chi è in Z4 (in BP è S)
+              const playerId = assignmentB[4];
+              const blocker = getPlayerById(teamB, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
             }
-          } else if (state.rotationB === 'P1') {
-            // RP in P1: muro per posizione
+          } else {
+            // RP: muro per posizione
             const playerId = assignmentB[blockZone];
             const blocker = getPlayerById(teamB, playerId);
             blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-          } else {
-            // RP in P2-P6: muro per ruolo
-            if (blockZone === 2) {
-              blockers = teamB.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamB.liberoId);
-            } else {
-              blockers = teamB.roster.filter(p => p.role === 'S' && p.id !== teamB.liberoId);
-            }
           }
 
-          // Registra i matchup
+          // Registra i matchup per ogni muratore
           blockers.forEach(blocker => {
-            const key = `${playerA.id}-${blocker.id}`;
+            const key = `${attackerA.id}-${blocker.id}`;
             if (!matchupsA.has(key)) {
               matchupsA.set(key, {
-                player: playerA,
+                player: attackerA,
                 opponent: blocker,
                 rotations: [],
                 count: 0,
@@ -116,50 +115,48 @@ export function RotationSequenceFull({
         });
       });
 
-      // Per ogni giocatore di B in prima linea
-      [2, 3, 4].forEach(zone => {
-        const playerB = getPlayerById(teamB, assignmentB[zone as Zone]);
-        if (!playerB || playerB.role === 'L') return;
+      // Per ogni giocatore di B in prima linea (attaccante)
+      [2, 3, 4].forEach(attackZone => {
+        const attackerB = getPlayerById(teamB, assignmentB[attackZone as Zone]);
+        if (!attackerB || attackerB.role === 'L') return;
 
-        // Trova i muratori di A
-        const blockZones = ATTACK_TO_BLOCK_ZONES[zone as Zone];
+        // Determina le zone di muro in base alla zona di attacco
+        const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone as Zone];
         
-        // Trova il centrale in prima linea nella squadra A
-        const centerBlockerA = getCenterBlockerInRotation(teamA, assignmentA, state.rotationA);
-        
+        // Per ogni zona di muro, trova i muratori di A
         blockZones.forEach(blockZone => {
           let blockers: Player[] = [];
           
           if (blockZone === 3) {
-            // Centro: Solo il centrale in prima linea in questa rotazione
+            // Posto 3: Solo il centrale in prima linea in questa rotazione
+            const centerBlockerA = getCenterBlockerInRotation(teamA, assignmentA, state.rotationA);
             blockers = centerBlockerA ? [centerBlockerA] : [];
           } else if (phaseA === 'BP') {
             // BP: muro per ruolo
             if (blockZone === 2) {
-              blockers = teamA.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamA.liberoId);
+              // Posto 2: Chi è in Z2 (in BP è OPP o P)
+              const playerId = assignmentA[2];
+              const blocker = getPlayerById(teamA, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
             } else {
-              blockers = teamA.roster.filter(p => p.role === 'S' && p.id !== teamA.liberoId);
+              // Posto 4: Chi è in Z4 (in BP è S)
+              const playerId = assignmentA[4];
+              const blocker = getPlayerById(teamA, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
             }
-          } else if (state.rotationA === 'P1') {
-            // RP in P1: muro per posizione
+          } else {
+            // RP: muro per posizione
             const playerId = assignmentA[blockZone];
             const blocker = getPlayerById(teamA, playerId);
             blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-          } else {
-            // RP in P2-P6: muro per ruolo
-            if (blockZone === 2) {
-              blockers = teamA.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== teamA.liberoId);
-            } else {
-              blockers = teamA.roster.filter(p => p.role === 'S' && p.id !== teamA.liberoId);
-            }
           }
 
-          // Registra i matchup
+          // Registra i matchup per ogni muratore
           blockers.forEach(blocker => {
-            const key = `${playerB.id}-${blocker.id}`;
+            const key = `${attackerB.id}-${blocker.id}`;
             if (!matchupsB.has(key)) {
               matchupsB.set(key, {
-                player: playerB,
+                player: attackerB,
                 opponent: blocker,
                 rotations: [],
                 count: 0,
@@ -343,11 +340,90 @@ export function RotationSequenceFull({
         </div>
       </div>
 
+      {/* Matrice Matchup per Rotazione */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h2 className="text-2xl font-bold mb-4">Matrice Matchup per Rotazione</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Per ogni stato della sequenza, mostra chi attacca e chi mura in ogni zona.
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left">Stato</th>
+                <th className="border p-2 text-left">Rotazione</th>
+                <th className="border p-2 text-left">Fase</th>
+                <th className="border p-2 text-left">Zona 4</th>
+                <th className="border p-2 text-left">Zona 3</th>
+                <th className="border p-2 text-left">Zona 2</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sequence.slice(0, -1).map((state, index) => {
+                const assignmentA = assignmentsA[state.rotationA];
+                const assignmentB = assignmentsB[state.rotationB];
+                const phaseA: 'BP' | 'RP' = state.servingTeam === 'A' ? 'BP' : 'RP';
+                const phaseB: 'BP' | 'RP' = state.servingTeam === 'B' ? 'BP' : 'RP';
+
+                return (
+                  <tr key={index} className="border-b">
+                    <td className="border p-2 font-bold">{index + 1}</td>
+                    <td className="border p-2">
+                      <div style={{ color: teamA.color }}>A: {state.rotationA}</div>
+                      <div style={{ color: teamB.color }}>B: {state.rotationB}</div>
+                    </td>
+                    <td className="border p-2">
+                      <div style={{ color: teamA.color }}>A: {phaseA}</div>
+                      <div style={{ color: teamB.color }}>B: {phaseB}</div>
+                    </td>
+                    <td className="border p-2 text-xs">
+                      <div style={{ color: teamA.color }}>
+                        Att: {getPlayerById(teamA, assignmentA[4])?.name || '-'}
+                      </div>
+                      <div style={{ color: teamB.color }}>
+                        Muro: {phaseA === 'BP' 
+                          ? getPlayerById(teamB, assignmentB[2])?.name || '-'
+                          : getPlayerById(teamB, assignmentB[4])?.name || '-'
+                        }
+                      </div>
+                    </td>
+                    <td className="border p-2 text-xs">
+                      <div style={{ color: teamA.color }}>
+                        Att: {getPlayerById(teamA, assignmentA[3])?.name || '-'}
+                      </div>
+                      <div style={{ color: teamB.color }}>
+                        Muro: {getCenterBlockerInRotation(teamB, assignmentB, state.rotationB)?.name || '-'}
+                      </div>
+                    </td>
+                    <td className="border p-2 text-xs">
+                      <div style={{ color: teamA.color }}>
+                        Att: {getPlayerById(teamA, assignmentA[2])?.name || '-'}
+                      </div>
+                      <div style={{ color: teamB.color }}>
+                        Muro: {phaseA === 'BP'
+                          ? getPlayerById(teamB, assignmentB[4])?.name || '-'
+                          : getPlayerById(teamB, assignmentB[2])?.name || '-'
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Conteggio Matchup Giocatori */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h2 className="text-2xl font-bold mb-4">Conteggio Scontri tra Giocatori</h2>
         <p className="text-sm text-gray-600 mb-6">
           Numero di volte che ogni giocatore si scontra con gli avversari nella sequenza dei 12 stati.
+          <br />
+          <span className="text-xs text-gray-500">
+            Ogni giocatore sta in prima linea per 3 rotazioni consecutive.
+          </span>
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
