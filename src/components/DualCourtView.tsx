@@ -29,13 +29,18 @@ export function DualCourtView({
   rotation,
 }: DualCourtViewProps) {
   const [orientation, setOrientation] = useState<Orientation>('horizontal');
+  // Disposizioni standard delle zone nella pallavolo
+  // Campo in ALTO (Squadra B): Z5-Z6-Z1 in alto, Z4-Z3-Z2 in basso (vicino alla rete)
+  // Campo in BASSO (Squadra A): Z4-Z3-Z2 in alto (vicino alla rete), Z5-Z6-Z1 in basso
   const [positionsA, setPositionsA] = useState<Record<Zone, { x: number; y: number }>>({
-    1: { x: 80, y: 80 }, 2: { x: 80, y: 20 }, 3: { x: 50, y: 20 },
-    4: { x: 20, y: 20 }, 5: { x: 20, y: 80 }, 6: { x: 50, y: 80 },
+    // Squadra A (sotto): prima linea in alto, seconda linea in basso
+    4: { x: 20, y: 20 }, 3: { x: 50, y: 20 }, 2: { x: 80, y: 20 }, // Prima linea (vicino alla rete)
+    5: { x: 20, y: 80 }, 6: { x: 50, y: 80 }, 1: { x: 80, y: 80 }, // Seconda linea
   });
   const [positionsB, setPositionsB] = useState<Record<Zone, { x: number; y: number }>>({
-    1: { x: 80, y: 80 }, 2: { x: 80, y: 20 }, 3: { x: 50, y: 20 },
-    4: { x: 20, y: 20 }, 5: { x: 20, y: 80 }, 6: { x: 50, y: 80 },
+    // Squadra B (sopra): prima linea in basso, seconda linea in alto
+    5: { x: 20, y: 20 }, 6: { x: 50, y: 20 }, 1: { x: 80, y: 20 }, // Seconda linea
+    4: { x: 20, y: 80 }, 3: { x: 50, y: 80 }, 2: { x: 80, y: 80 }, // Prima linea (vicino alla rete)
   });
 
   const [dragging, setDragging] = useState<{ team: 'A' | 'B'; phase: 'RP' | 'BP'; zone: Zone } | null>(null);
@@ -171,7 +176,7 @@ export function DualCourtView({
   const renderCourt = (phase: 'RP' | 'BP', attackingTeam: 'A' | 'B') => {
     const isHorizontal = orientation === 'horizontal';
     const courtStyle = isHorizontal
-      ? { width: '100%', height: '400px' }
+      ? { width: '100%', height: '500px' }
       : { width: '100%', height: '600px' };
 
     return (
@@ -192,36 +197,37 @@ export function DualCourtView({
           {attackingTeam === 'A' ? teamA.name : teamB.name} attacca
         </div>
 
-        {/* Squadra attaccante (sotto/sinistra) */}
-        <div className={isHorizontal ? 'absolute bottom-0 left-0 right-0 h-[45%]' : 'absolute top-0 bottom-0 left-0 w-[45%]'}>
-          {[1, 2, 3, 4, 5, 6].map(zoneNum => {
-            const zone = zoneNum as Zone;
-            const pos = positionsA[zone];
-            const isAttacking = attackingTeam === 'A' && [4, 3, 2].includes(zone);
-            return renderPlayer(teamA, assignmentA, zone, pos, 'A', phase, isAttacking);
-          })}
-        </div>
-
-        {/* RETE */}
-        <div className={isHorizontal 
-          ? 'absolute top-[45%] left-0 right-0 h-2 bg-gray-900 z-20'
-          : 'absolute left-[45%] top-0 bottom-0 w-2 bg-gray-900 z-20'
-        }>
-          <div className={isHorizontal
-            ? 'absolute left-1/2 -translate-x-1/2 -top-5 bg-white px-2 text-xs font-bold text-gray-700 rounded border'
-            : 'absolute top-1/2 -translate-y-1/2 -left-8 bg-white px-2 text-xs font-bold text-gray-700 rounded border'
-          }>
-            RETE
-          </div>
-        </div>
-
-        {/* Squadra difendente (sopra/destra) */}
+        {/* Campo completo con entrambe le squadre */}
+        {/* Squadra B (sopra) - seconda linea in alto, prima linea in basso (vicino alla rete) */}
         <div className={isHorizontal ? 'absolute top-0 left-0 right-0 h-[45%]' : 'absolute top-0 bottom-0 right-0 w-[45%]'}>
           {[1, 2, 3, 4, 5, 6].map(zoneNum => {
             const zone = zoneNum as Zone;
             const pos = positionsB[zone];
             const isAttacking = attackingTeam === 'B' && [4, 3, 2].includes(zone);
             return renderPlayer(teamB, assignmentB, zone, pos, 'B', phase, isAttacking);
+          })}
+        </div>
+
+        {/* RETE */}
+        <div className={isHorizontal 
+          ? 'absolute top-[45%] left-0 right-0 h-2 bg-gray-900 z-20'
+          : 'absolute right-[45%] top-0 bottom-0 w-2 bg-gray-900 z-20'
+        }>
+          <div className={isHorizontal
+            ? 'absolute left-1/2 -translate-x-1/2 -top-5 bg-white px-2 text-xs font-bold text-gray-700 rounded border'
+            : 'absolute top-1/2 -translate-y-1/2 left-2 bg-white px-2 text-xs font-bold text-gray-700 rounded border'
+          }>
+            RETE
+          </div>
+        </div>
+
+        {/* Squadra A (sotto) - prima linea in alto (vicino alla rete), seconda linea in basso */}
+        <div className={isHorizontal ? 'absolute bottom-0 left-0 right-0 h-[45%]' : 'absolute top-0 bottom-0 left-0 w-[45%]'}>
+          {[1, 2, 3, 4, 5, 6].map(zoneNum => {
+            const zone = zoneNum as Zone;
+            const pos = positionsA[zone];
+            const isAttacking = attackingTeam === 'A' && [4, 3, 2].includes(zone);
+            return renderPlayer(teamA, assignmentA, zone, pos, 'A', phase, isAttacking);
           })}
         </div>
 
