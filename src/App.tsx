@@ -1250,10 +1250,11 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   };
 
   // Ottieni TUTTI i giocatori che possono fare muro in una posizione
+  // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
   // La logica cambia in base alla fase di gioco:
+  // - Posto 3: SEMPRE centrali (indipendentemente dalla fase)
   // - BP (Break Point): muro per RUOLO
   //   - Posto 2: Opposti + Palleggiatori
-  //   - Posto 3: Centrali
   //   - Posto 4: Schiacciatori
   // - RP (Ricezione Punto): muro per POSIZIONE DI ROTAZIONE
   //   - Chi si trova in quella zona mura lì
@@ -1263,12 +1264,13 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     phase: 'BP' | 'RP',
     assignment?: ZoneAssignment
   ): Player[] => {
-    if (phase === 'BP') {
+    if (blockZone === 3) {
+      // CENTRO: SEMPRE centrali (indipendentemente dalla fase)
+      // I centrali attaccano e murano sempre dal centro
+      return team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
+    } else if (phase === 'BP') {
       // FASE BREAK POINT: muro per RUOLO
-      if (blockZone === 3) {
-        // Centro: tutti i centrali
-        return team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
-      } else if (blockZone === 2) {
+      if (blockZone === 2) {
         // Posto 2: Opposti + Palleggiatori
         return team.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== team.liberoId);
       } else {
