@@ -19,6 +19,7 @@ interface PlayerMatchupCount {
   opponent: Player;
   rotations: RotationLabel[];
   count: number;
+  attackZone?: Zone; // Zona da cui attacca (per attacchi da posto 1)
 }
 
 /**
@@ -60,9 +61,11 @@ export function RotationSequenceFull({
       const phaseB: 'BP' | 'RP' = state.servingTeam === 'B' ? 'BP' : 'RP';
 
       // Per ogni giocatore di A in prima linea (attaccante)
+      // Il palleggiatore (P) NON attacca, mura solo
       [2, 3, 4].forEach(attackZone => {
         const attackerA = getPlayerById(teamA, assignmentA[attackZone as Zone]);
-        if (!attackerA || attackerA.role === 'L') return;
+        // Escludi libero e palleggiatore dagli attaccanti
+        if (!attackerA || attackerA.role === 'L' || attackerA.role === 'P') return;
 
         // Determina le zone di muro in base alla zona di attacco
         const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone as Zone];
@@ -115,10 +118,60 @@ export function RotationSequenceFull({
         });
       });
 
+      // Attacchi di seconda linea: Opposto da posto 1
+      // L'opposto attacca da posto 1 contro il muro di posto 4 + centrale
+      const attackerFromZone1A = getPlayerById(teamA, assignmentA[1]);
+      if (attackerFromZone1A && attackerFromZone1A.role === 'OPP') {
+        // Attacco da posto 1 → muro di posto 4 + posto 3 (centrale)
+        const blockZonesFrom1: Zone[] = [4, 3];
+        
+        blockZonesFrom1.forEach(blockZone => {
+          let blockers: Player[] = [];
+          
+          if (blockZone === 3) {
+            // Centrale in prima linea
+            const centerBlockerB = getCenterBlockerInRotation(teamB, assignmentB, state.rotationB);
+            blockers = centerBlockerB ? [centerBlockerB] : [];
+          } else if (blockZone === 4) {
+            // Posto 4: muratore in zona 4
+            if (phaseB === 'BP') {
+              const playerId = assignmentB[4];
+              const blocker = getPlayerById(teamB, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
+            } else {
+              const playerId = assignmentB[4];
+              const blocker = getPlayerById(teamB, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
+            }
+          }
+
+          // Registra i matchup
+          blockers.forEach(blocker => {
+            const key = `${attackerFromZone1A.id}-${blocker.id}-Z1`;
+            if (!matchupsA.has(key)) {
+              matchupsA.set(key, {
+                player: attackerFromZone1A,
+                opponent: blocker,
+                rotations: [],
+                count: 0,
+                attackZone: 1,
+              });
+            }
+            const matchup = matchupsA.get(key)!;
+            if (!matchup.rotations.includes(state.rotationA)) {
+              matchup.rotations.push(state.rotationA);
+            }
+            matchup.count++;
+          });
+        });
+      }
+
       // Per ogni giocatore di B in prima linea (attaccante)
+      // Il palleggiatore (P) NON attacca, mura solo
       [2, 3, 4].forEach(attackZone => {
         const attackerB = getPlayerById(teamB, assignmentB[attackZone as Zone]);
-        if (!attackerB || attackerB.role === 'L') return;
+        // Escludi libero e palleggiatore dagli attaccanti
+        if (!attackerB || attackerB.role === 'L' || attackerB.role === 'P') return;
 
         // Determina le zone di muro in base alla zona di attacco
         const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone as Zone];
@@ -170,6 +223,54 @@ export function RotationSequenceFull({
           });
         });
       });
+
+      // Attacchi di seconda linea: Opposto da posto 1
+      // L'opposto attacca da posto 1 contro il muro di posto 4 + centrale
+      const attackerFromZone1B = getPlayerById(teamB, assignmentB[1]);
+      if (attackerFromZone1B && attackerFromZone1B.role === 'OPP') {
+        // Attacco da posto 1 → muro di posto 4 + posto 3 (centrale)
+        const blockZonesFrom1: Zone[] = [4, 3];
+        
+        blockZonesFrom1.forEach(blockZone => {
+          let blockers: Player[] = [];
+          
+          if (blockZone === 3) {
+            // Centrale in prima linea
+            const centerBlockerA = getCenterBlockerInRotation(teamA, assignmentA, state.rotationA);
+            blockers = centerBlockerA ? [centerBlockerA] : [];
+          } else if (blockZone === 4) {
+            // Posto 4: muratore in zona 4
+            if (phaseA === 'BP') {
+              const playerId = assignmentA[4];
+              const blocker = getPlayerById(teamA, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
+            } else {
+              const playerId = assignmentA[4];
+              const blocker = getPlayerById(teamA, playerId);
+              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
+            }
+          }
+
+          // Registra i matchup
+          blockers.forEach(blocker => {
+            const key = `${attackerFromZone1B.id}-${blocker.id}-Z1`;
+            if (!matchupsB.has(key)) {
+              matchupsB.set(key, {
+                player: attackerFromZone1B,
+                opponent: blocker,
+                rotations: [],
+                count: 0,
+                attackZone: 1,
+              });
+            }
+            const matchup = matchupsB.get(key)!;
+            if (!matchup.rotations.includes(state.rotationB)) {
+              matchup.rotations.push(state.rotationB);
+            }
+            matchup.count++;
+          });
+        });
+      }
     }
 
     return {
@@ -423,6 +524,10 @@ export function RotationSequenceFull({
           <br />
           <span className="text-xs text-gray-500">
             Ogni giocatore sta in prima linea per 3 rotazioni consecutive.
+            <br />
+            <strong>Nota:</strong> Il palleggiatore (P) mura ma non attacca in prima linea.
+            <br />
+            <span className="text-orange-600 font-semibold">[Z1]</span> indica attacchi di seconda linea dell'opposto da posto 1 contro muro di posto 4 + centrale.
           </span>
         </p>
 
@@ -444,6 +549,7 @@ export function RotationSequenceFull({
                       {playerMatchupsList.map((matchup, idx) => (
                         <div key={idx} className="text-sm flex justify-between items-center">
                           <span>
+                            {matchup.attackZone === 1 && <span className="text-orange-600 font-semibold">[Z1] </span>}
                             vs <span className="font-semibold">{matchup.opponent.number} {matchup.opponent.name}</span>
                             <span className="text-gray-500"> ({matchup.opponent.role})</span>
                           </span>
@@ -476,6 +582,7 @@ export function RotationSequenceFull({
                       {playerMatchupsList.map((matchup, idx) => (
                         <div key={idx} className="text-sm flex justify-between items-center">
                           <span>
+                            {matchup.attackZone === 1 && <span className="text-orange-600 font-semibold">[Z1] </span>}
                             vs <span className="font-semibold">{matchup.opponent.number} {matchup.opponent.name}</span>
                             <span className="text-gray-500"> ({matchup.opponent.role})</span>
                           </span>
