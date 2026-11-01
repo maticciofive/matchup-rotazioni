@@ -1249,53 +1249,18 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     return playerInZone(team, assignment, blockZone);
   };
 
-  // Ottieni TUTTI i giocatori che possono fare muro in una posizione
-  // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
-  // La logica cambia in base alla fase di gioco:
-  // - Posto 3: Solo il centrale in prima linea in questa rotazione
-  // - BP (Break Point): muro per RUOLO
-  //   - Posto 2: Opposti + Palleggiatori
-  //   - Posto 4: Schiacciatori
-  // - RP (Ricezione Punto): muro per POSIZIONE DI ROTAZIONE
-  //   - Chi si trova in quella zona mura lì
-  const getAllBlockersForZone = (
+  // Ottieni IL SOLO giocatore che fa muro in una specifica zona
+  // In una data rotazione, c'è UN SOLO giocatore in ogni zona che mura
+  const getBlockerForZone = (
     team: Team,
     blockZone: Zone,
-    phase: 'BP' | 'RP',
-    rotation: RotationLabel,
     assignment?: ZoneAssignment
-  ): Player[] => {
-    if (blockZone === 3) {
-      // CENTRO: Solo il centrale in prima linea in questa rotazione
-      if (!assignment) return [];
-      const centerBlocker = getCenterBlockerInRotation(team, assignment, rotation);
-      return centerBlocker ? [centerBlocker] : [];
-    } else if (phase === 'BP') {
-      // FASE BREAK POINT: muro per RUOLO
-      if (blockZone === 2) {
-        // Posto 2: Opposti + Palleggiatori
-        return team.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== team.liberoId);
-      } else {
-        // Posto 4: Schiacciatori
-        return team.roster.filter(p => p.role === 'S' && p.id !== team.liberoId);
-      }
-    } else if (rotation === 'P1') {
-      // FASE RICEZIONE PUNTO in P1: muro per POSIZIONE DI ROTAZIONE
-      // Chi si trova in quella zona mura lì
-      if (!assignment) return [];
-      const playerId = assignment[blockZone];
-      const player = getPlayerById(team, playerId);
-      return player && player.role !== 'L' ? [player] : [];
-    } else {
-      // FASE RICEZIONE PUNTO in P2-P6: muro per RUOLO (come in BP)
-      if (blockZone === 2) {
-        // Posto 2: Opposti + Palleggiatori
-        return team.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== team.liberoId);
-      } else {
-        // Posto 4: Schiacciatori
-        return team.roster.filter(p => p.role === 'S' && p.id !== team.liberoId);
-      }
-    }
+  ): Player | null => {
+    if (!assignment) return null;
+    // IL SOLO giocatore che si trova in quella zona in questa rotazione
+    const playerId = assignment[blockZone];
+    const player = getPlayerById(team, playerId);
+    return player && player.role !== 'L' ? player : null;
   };
 
   const attackZones: Zone[] = [4, 3, 2];
@@ -1495,10 +1460,13 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                     return null;
                   }
                   
-                  // Per ogni zona di muro, ottieni tutti i giocatori possibili
+                  // Per ogni zona di muro, ottieni IL SOLO giocatore che mura
                   const allBlockersByZone = blockZones.map(bz => ({
                     zone: bz,
-                    players: getAllBlockersForZone(teamB, bz, bpB, selectedRotB, assignmentB)
+                    players: (() => {
+                      const blocker = getBlockerForZone(teamB, bz, assignmentB);
+                      return blocker ? [blocker] : [];
+                    })()
                   }));
                   
                   return (
@@ -1510,10 +1478,9 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                           <div key={idx} className="mb-1">
                             <span className="text-xs text-gray-500">Z{blockerGroup.zone}: </span>
                             {blockerGroup.players.length > 0 ? (
-                              blockerGroup.players.map((p, pIdx) => (
+                              blockerGroup.players.map((p: Player, pIdx: number) => (
                                 <span key={pIdx}>
                                   {formatPlayerCompact(p)}
-                                  {pIdx < blockerGroup.players.length - 1 ? ' o ' : ''}
                                 </span>
                               ))
                             ) : (
@@ -1562,10 +1529,13 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                     return null;
                   }
                   
-                  // Per ogni zona di muro, ottieni tutti i giocatori possibili
+                  // Per ogni zona di muro, ottieni IL SOLO giocatore che mura
                   const allBlockersByZone = blockZones.map(bz => ({
                     zone: bz,
-                    players: getAllBlockersForZone(teamA, bz, bpA, selectedRotA, assignmentA)
+                    players: (() => {
+                      const blocker = getBlockerForZone(teamA, bz, assignmentA);
+                      return blocker ? [blocker] : [];
+                    })()
                   }));
                   
                   return (
@@ -1577,10 +1547,9 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                           <div key={idx} className="mb-1">
                             <span className="text-xs text-gray-500">Z{blockerGroup.zone}: </span>
                             {blockerGroup.players.length > 0 ? (
-                              blockerGroup.players.map((p, pIdx) => (
+                              blockerGroup.players.map((p: Player, pIdx: number) => (
                                 <span key={pIdx}>
                                   {formatPlayerCompact(p)}
-                                  {pIdx < blockerGroup.players.length - 1 ? ' o ' : ''}
                                 </span>
                               ))
                             ) : (

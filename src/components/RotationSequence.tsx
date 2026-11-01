@@ -35,50 +35,11 @@ export function RotationSequence({
 
       const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone];
       
-      // Trova il centrale in prima linea nella squadra difendente
-      const centerBlocker = getCenterBlockerInRotation(defendingTeam, defendingAssignment, rotation);
-      
+      // IL SOLO muratore per ogni zona: chi si trova in quella zona in questa rotazione
       const blockers = blockZones.map((blockZone: Zone) => {
-        let players: Player[];
-        
-        // REGOLA: I centrali attaccano e murano SEMPRE dal centro (posto 3)
-        if (blockZone === 3) {
-          // CENTRO: Solo il centrale in prima linea in questa rotazione
-          players = centerBlocker ? [centerBlocker] : [];
-        } else if (phase === 'BP') {
-          // FASE BREAK POINT: muro per RUOLO
-          if (blockZone === 2) {
-            // Posto 2: Opposti + Palleggiatori
-            players = defendingTeam.roster.filter(
-              p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeam.liberoId
-            );
-          } else {
-            // Posto 4: Schiacciatori
-            players = defendingTeam.roster.filter(
-              p => p.role === 'S' && p.id !== defendingTeam.liberoId
-            );
-          }
-        } else if (rotation === 'P1') {
-          // FASE RICEZIONE PUNTO in P1: muro per POSIZIONE DI ROTAZIONE
-          // Chi si trova in quella zona mura lì
-          const playerId = defendingAssignment[blockZone];
-          const player = getPlayerById(defendingTeam, playerId);
-          players = player && player.role !== 'L' ? [player] : [];
-        } else {
-          // FASE RICEZIONE PUNTO in P2-P6: muro per RUOLO (come in BP)
-          if (blockZone === 2) {
-            // Posto 2: Opposti + Palleggiatori
-            players = defendingTeam.roster.filter(
-              p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendingTeam.liberoId
-            );
-          } else {
-            // Posto 4: Schiacciatori
-            players = defendingTeam.roster.filter(
-              p => p.role === 'S' && p.id !== defendingTeam.liberoId
-            );
-          }
-        }
-        
+        const playerId = defendingAssignment[blockZone];
+        const player = getPlayerById(defendingTeam, playerId);
+        const players = player && player.role !== 'L' ? [player] : [];
         return { zone: blockZone, players };
       });
 

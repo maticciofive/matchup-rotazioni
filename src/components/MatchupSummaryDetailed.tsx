@@ -18,38 +18,16 @@ export function MatchupSummaryDetailed({
   assignmentsA,
   assignmentsB,
 }: MatchupSummaryProps) {
-  // Calcola i muratori per una fase
-  const getBlockers = (
+  // Calcola IL SOLO muratore per una zona in una specifica rotazione e fase
+  const getBlocker = (
     defendTeam: Team,
     defendAssignment: ZoneAssignment,
-    blockZone: Zone,
-    phase: 'RP' | 'BP',
-    rotation: RotationLabel
-  ): Player[] => {
-    if (blockZone === 3) {
-      // Centro: Solo il centrale in prima linea in questa rotazione
-      const centerBlocker = getCenterBlockerInRotation(defendTeam, defendAssignment, rotation);
-      return centerBlocker ? [centerBlocker] : [];
-    } else if (phase === 'BP') {
-      // BP: muro per ruolo
-      if (blockZone === 2) {
-        return defendTeam.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendTeam.liberoId);
-      } else {
-        return defendTeam.roster.filter(p => p.role === 'S' && p.id !== defendTeam.liberoId);
-      }
-    } else if (rotation === 'P1') {
-      // RP in P1: muro per posizione
-      const playerId = defendAssignment[blockZone];
-      const player = getPlayerById(defendTeam, playerId);
-      return player && player.role !== 'L' ? [player] : [];
-    } else {
-      // RP in P2-P6: muro per ruolo (come in BP)
-      if (blockZone === 2) {
-        return defendTeam.roster.filter(p => (p.role === 'OPP' || p.role === 'P') && p.id !== defendTeam.liberoId);
-      } else {
-        return defendTeam.roster.filter(p => p.role === 'S' && p.id !== defendTeam.liberoId);
-      }
-    }
+    blockZone: Zone
+  ): Player | null => {
+    // IL SOLO giocatore che si trova in quella zona in questa rotazione
+    const playerId = defendAssignment[blockZone];
+    const player = getPlayerById(defendTeam, playerId);
+    return player && player.role !== 'L' ? player : null;
   };
 
   // Trova in quale zona si trova un giocatore in una rotazione
@@ -76,10 +54,13 @@ export function MatchupSummaryDetailed({
     if (!playerZone || ![2, 3, 4].includes(playerZone)) return null; // Non in prima linea
 
     const blockZones = ATTACK_TO_BLOCK_ZONES[playerZone];
-    const blockers = blockZones.map(blockZone => ({
-      zone: blockZone,
-      players: getBlockers(opponentTeam, opponentAssignment, blockZone, phase, rotation)
-    }));
+    const blockers = blockZones.map(blockZone => {
+      const blocker = getBlocker(opponentTeam, opponentAssignment, blockZone);
+      return {
+        zone: blockZone,
+        players: blocker ? [blocker] : []
+      };
+    });
 
     return {
       playerZone,
@@ -137,10 +118,9 @@ export function MatchupSummaryDetailed({
                                 <div key={idx} className="mb-1">
                                   <span className="font-medium">Posto {blockerGroup.zone}: </span>
                                   {blockerGroup.players.length > 0 ? (
-                                    blockerGroup.players.map((p, pIdx) => (
+                                    blockerGroup.players.map((p: Player, pIdx: number) => (
                                       <span key={pIdx}>
                                         {p.name} (n.{p.number})
-                                        {pIdx < blockerGroup.players.length - 1 ? ' + ' : ''}
                                       </span>
                                     ))
                                   ) : (
@@ -195,10 +175,9 @@ export function MatchupSummaryDetailed({
                                 <div key={idx} className="mb-1">
                                   <span className="font-medium">Posto {blockerGroup.zone}: </span>
                                   {blockerGroup.players.length > 0 ? (
-                                    blockerGroup.players.map((p, pIdx) => (
+                                    blockerGroup.players.map((p: Player, pIdx: number) => (
                                       <span key={pIdx}>
                                         {p.name} (n.{p.number})
-                                        {pIdx < blockerGroup.players.length - 1 ? ' + ' : ''}
                                       </span>
                                     ))
                                   ) : (

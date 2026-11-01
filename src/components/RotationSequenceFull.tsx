@@ -70,36 +70,14 @@ export function RotationSequenceFull({
         // Determina le zone di muro in base alla zona di attacco
         const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone as Zone];
         
-        // Per ogni zona di muro, trova i muratori di B
+        // Per ogni zona di muro, trova IL SOLO muratore di B in quella zona
         blockZones.forEach(blockZone => {
-          let blockers: Player[] = [];
+          // IL SOLO giocatore che si trova in quella zona in questa rotazione
+          const playerId = assignmentB[blockZone];
+          const blocker = getPlayerById(teamB, playerId);
           
-          if (blockZone === 3) {
-            // Posto 3: Solo il centrale in prima linea in questa rotazione
-            const centerBlockerB = getCenterBlockerInRotation(teamB, assignmentB, state.rotationB);
-            blockers = centerBlockerB ? [centerBlockerB] : [];
-          } else if (phaseB === 'BP') {
-            // BP: muro per ruolo
-            if (blockZone === 2) {
-              // Posto 2: Chi è in Z2 (in BP è OPP o P)
-              const playerId = assignmentB[2];
-              const blocker = getPlayerById(teamB, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            } else {
-              // Posto 4: Chi è in Z4 (in BP è S)
-              const playerId = assignmentB[4];
-              const blocker = getPlayerById(teamB, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            }
-          } else {
-            // RP: muro per posizione
-            const playerId = assignmentB[blockZone];
-            const blocker = getPlayerById(teamB, playerId);
-            blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-          }
-
-          // Registra i matchup per ogni muratore
-          blockers.forEach(blocker => {
+          // Registra il matchup solo se c'è un muratore (non libero)
+          if (blocker && blocker.role !== 'L') {
             const key = `${attackerA.id}-${blocker.id}`;
             if (!matchupsA.has(key)) {
               matchupsA.set(key, {
@@ -114,7 +92,7 @@ export function RotationSequenceFull({
               matchup.rotations.push(state.rotationA);
             }
             matchup.count++;
-          });
+          }
         });
       });
 
@@ -126,27 +104,12 @@ export function RotationSequenceFull({
         const blockZonesFrom1: Zone[] = [4, 3];
         
         blockZonesFrom1.forEach(blockZone => {
-          let blockers: Player[] = [];
+          // IL SOLO giocatore che si trova in quella zona in questa rotazione
+          const playerId = assignmentB[blockZone];
+          const blocker = getPlayerById(teamB, playerId);
           
-          if (blockZone === 3) {
-            // Centrale in prima linea
-            const centerBlockerB = getCenterBlockerInRotation(teamB, assignmentB, state.rotationB);
-            blockers = centerBlockerB ? [centerBlockerB] : [];
-          } else if (blockZone === 4) {
-            // Posto 4: muratore in zona 4
-            if (phaseB === 'BP') {
-              const playerId = assignmentB[4];
-              const blocker = getPlayerById(teamB, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            } else {
-              const playerId = assignmentB[4];
-              const blocker = getPlayerById(teamB, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            }
-          }
-
-          // Registra i matchup
-          blockers.forEach(blocker => {
+          // Registra il matchup solo se c'è un muratore (non libero)
+          if (blocker && blocker.role !== 'L') {
             const key = `${attackerFromZone1A.id}-${blocker.id}-Z1`;
             if (!matchupsA.has(key)) {
               matchupsA.set(key, {
@@ -162,7 +125,7 @@ export function RotationSequenceFull({
               matchup.rotations.push(state.rotationA);
             }
             matchup.count++;
-          });
+          }
         });
       }
 
@@ -176,36 +139,14 @@ export function RotationSequenceFull({
         // Determina le zone di muro in base alla zona di attacco
         const blockZones = ATTACK_TO_BLOCK_ZONES[attackZone as Zone];
         
-        // Per ogni zona di muro, trova i muratori di A
+        // Per ogni zona di muro, trova IL SOLO muratore di A in quella zona
         blockZones.forEach(blockZone => {
-          let blockers: Player[] = [];
+          // IL SOLO giocatore che si trova in quella zona in questa rotazione
+          const playerId = assignmentA[blockZone];
+          const blocker = getPlayerById(teamA, playerId);
           
-          if (blockZone === 3) {
-            // Posto 3: Solo il centrale in prima linea in questa rotazione
-            const centerBlockerA = getCenterBlockerInRotation(teamA, assignmentA, state.rotationA);
-            blockers = centerBlockerA ? [centerBlockerA] : [];
-          } else if (phaseA === 'BP') {
-            // BP: muro per ruolo
-            if (blockZone === 2) {
-              // Posto 2: Chi è in Z2 (in BP è OPP o P)
-              const playerId = assignmentA[2];
-              const blocker = getPlayerById(teamA, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            } else {
-              // Posto 4: Chi è in Z4 (in BP è S)
-              const playerId = assignmentA[4];
-              const blocker = getPlayerById(teamA, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            }
-          } else {
-            // RP: muro per posizione
-            const playerId = assignmentA[blockZone];
-            const blocker = getPlayerById(teamA, playerId);
-            blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-          }
-
-          // Registra i matchup per ogni muratore
-          blockers.forEach(blocker => {
+          // Registra il matchup solo se c'è un muratore (non libero)
+          if (blocker && blocker.role !== 'L') {
             const key = `${attackerB.id}-${blocker.id}`;
             if (!matchupsB.has(key)) {
               matchupsB.set(key, {
@@ -220,7 +161,7 @@ export function RotationSequenceFull({
               matchup.rotations.push(state.rotationB);
             }
             matchup.count++;
-          });
+          }
         });
       });
 
@@ -232,27 +173,12 @@ export function RotationSequenceFull({
         const blockZonesFrom1: Zone[] = [4, 3];
         
         blockZonesFrom1.forEach(blockZone => {
-          let blockers: Player[] = [];
+          // IL SOLO giocatore che si trova in quella zona in questa rotazione
+          const playerId = assignmentA[blockZone];
+          const blocker = getPlayerById(teamA, playerId);
           
-          if (blockZone === 3) {
-            // Centrale in prima linea
-            const centerBlockerA = getCenterBlockerInRotation(teamA, assignmentA, state.rotationA);
-            blockers = centerBlockerA ? [centerBlockerA] : [];
-          } else if (blockZone === 4) {
-            // Posto 4: muratore in zona 4
-            if (phaseA === 'BP') {
-              const playerId = assignmentA[4];
-              const blocker = getPlayerById(teamA, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            } else {
-              const playerId = assignmentA[4];
-              const blocker = getPlayerById(teamA, playerId);
-              blockers = blocker && blocker.role !== 'L' ? [blocker] : [];
-            }
-          }
-
-          // Registra i matchup
-          blockers.forEach(blocker => {
+          // Registra il matchup solo se c'è un muratore (non libero)
+          if (blocker && blocker.role !== 'L') {
             const key = `${attackerFromZone1B.id}-${blocker.id}-Z1`;
             if (!matchupsB.has(key)) {
               matchupsB.set(key, {
@@ -268,7 +194,7 @@ export function RotationSequenceFull({
               matchup.rotations.push(state.rotationB);
             }
             matchup.count++;
-          });
+          }
         });
       }
     }
