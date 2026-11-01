@@ -19,9 +19,10 @@ import {
 } from './engine/matchup';
 import { CourtView } from './components/CourtView';
 import { MatchupSummary } from './components/MatchupSummary';
+import { RotationSequence } from './components/RotationSequence';
 import type { ValidationError, TeamRotation, Matchup, CompleteMatchup } from './types';
 
-type TabId = 'teams' | 'set' | 'tactical' | 'matchup' | 'sequence' | 'simulation' | 'matrix' | 'print';
+type TabId = 'teams' | 'set' | 'tactical' | 'matchup' | 'sequence' | 'sequence-full' | 'simulation' | 'matrix' | 'print';
 
 export default function App() {
   const [data, setData] = useState<AnalysisData | null>(null);
@@ -138,6 +139,7 @@ export default function App() {
     { id: 'tactical', label: 'Assetti' },
     { id: 'matchup', label: 'Matchup' },
     { id: 'sequence', label: 'Sequenza' },
+    { id: 'sequence-full', label: 'Sequenza Completa' },
     { id: 'simulation', label: 'Simulazione' },
     { id: 'matrix', label: 'Matrice' },
     { id: 'print', label: 'Stampa' },
@@ -199,6 +201,7 @@ export default function App() {
         {activeTab === 'tactical' && <TacticalView data={data} setData={setData} />}
         {activeTab === 'matchup' && <MatchupView data={data} setData={setData} />}
         {activeTab === 'sequence' && <SequenceView data={data} />}
+        {activeTab === 'sequence-full' && <SequenceFullView data={data} />}
         {activeTab === 'simulation' && <SimulationView data={data} setData={setData} />}
         {activeTab === 'matrix' && <MatrixView data={data} />}
         {activeTab === 'print' && <PrintView data={data} />}
@@ -1826,6 +1829,43 @@ function CompactBenchView({ data }: { data: AnalysisData }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// === Sequence Full View ===
+function SequenceFullView({ data }: { data: AnalysisData }) {
+  const { teamA, teamB } = data;
+  
+  // Calcola le assegnazioni per tutte le rotazioni
+  const assignmentsA: Record<RotationLabel, ZoneAssignment> = {} as any;
+  const assignmentsB: Record<RotationLabel, ZoneAssignment> = {} as any;
+  
+  ROTATION_ORDER.forEach(rotation => {
+    assignmentsA[rotation] = getAssignmentForRotation(buildZoneAssignment(teamA.startingSix), rotation);
+    assignmentsB[rotation] = getAssignmentForRotation(buildZoneAssignment(teamB.startingSix), rotation);
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <h2 className="text-2xl font-bold mb-4">Sequenza Completa Rotazioni</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Visualizzazione completa di tutte le 6 rotazioni con campi interattivi e riepilogo attacco/muro per ogni fase.
+        </p>
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+          <p className="text-sm text-blue-800">
+            <strong>Istruzioni:</strong> Trascina i giocatori sui campi per spostarli. Le linee tratteggiate mostrano le traiettorie di attacco dalla squadra in attacco verso il muro avversario.
+          </p>
+        </div>
+      </div>
+
+      <RotationSequence
+        teamA={teamA}
+        teamB={teamB}
+        assignmentsA={assignmentsA}
+        assignmentsB={assignmentsB}
+      />
     </div>
   );
 }
