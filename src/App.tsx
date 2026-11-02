@@ -315,31 +315,52 @@ function MatchupView({ data, selectedRotA, selectedRotB, setSelectedRotA, setSel
 function AllRotationsMatchup({ data, selectedRotA, selectedRotB, servingTeam, modeA, modeB }: any) {
   const { teamA, teamB } = data;
 
-  // Genera tutti gli incroci possibili tra le 6 rotazioni
-  const allRotations: Array<{ rotA: RotationLabel; rotB: RotationLabel }> = [];
-  for (const rotA of ROTATION_ORDER) {
-    for (const rotB of ROTATION_ORDER) {
-      allRotations.push({ rotA, rotB });
+  // Genera la sequenza di side-out partendo dalle rotazioni iniziali
+  const sequence: Array<{ rotA: RotationLabel; rotB: RotationLabel; servingTeam: 'A' | 'B' }> = [];
+  let currentRotA = selectedRotA;
+  let currentRotB = selectedRotB;
+  let currentServing = servingTeam;
+
+  // Genera 12 stati (ciclo completo)
+  for (let i = 0; i < 12; i++) {
+    sequence.push({
+      rotA: currentRotA,
+      rotB: currentRotB,
+      servingTeam: currentServing,
+    });
+
+    // Side-out: la squadra in ricezione conquista il punto e il servizio
+    if (currentServing === 'A') {
+      // B riceve e conquista → B ruota e batte
+      const idxB = ROTATION_ORDER.indexOf(currentRotB);
+      currentRotB = ROTATION_ORDER[(idxB + 1) % 6];
+      currentServing = 'B';
+    } else {
+      // A riceve e conquista → A ruota e batte
+      const idxA = ROTATION_ORDER.indexOf(currentRotA);
+      currentRotA = ROTATION_ORDER[(idxA + 1) % 6];
+      currentServing = 'A';
     }
   }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-bold mb-4">Tutti gli Incroci - 36 Combinazioni</h2>
+      <h2 className="text-xl font-bold mb-4">Sequenza Effettiva - 12 Stati</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Partendo da {selectedRotA} [{teamA.name}] e {selectedRotB} [{teamB.name}], con {servingTeam === 'A' ? teamA.name : teamB.name} al servizio.
+      </p>
       
-      {allRotations.map(({ rotA, rotB }, idx) => {
+      {sequence.map(({ rotA, rotB, servingTeam: serving }, idx) => {
         const assignmentA = getAssignmentForRotation(buildZoneAssignment(teamA.startingSix) as ZoneAssignment, rotA);
         const assignmentB = getAssignmentForRotation(buildZoneAssignment(teamB.startingSix) as ZoneAssignment, rotB);
         
-        const bpA = servingTeam === 'A' ? 'BP' : 'RP';
-        const bpB = servingTeam === 'B' ? 'BP' : 'RP';
-        
-        const isSelected = rotA === selectedRotA && rotB === selectedRotB;
+        const bpA = serving === 'A' ? 'BP' : 'RP';
+        const bpB = serving === 'B' ? 'BP' : 'RP';
         
         return (
-          <div key={idx} className="mb-8 border-2 rounded-lg p-4" style={{ borderColor: isSelected ? '#3b82f6' : '#e5e7eb' }}>
+          <div key={idx} className="mb-8 border-2 rounded-lg p-4 border-gray-300">
             <h3 className="text-lg font-bold mb-4 text-center">
-              {rotA} [{teamA.name}] {bpA} vs {rotB} [{teamB.name}] {bpB}
+              Stato {idx + 1}: {rotA} [{teamA.name}] {bpA} vs {rotB} [{teamB.name}] {bpB}
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -421,7 +442,7 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 {attackZones.map((zone: Zone) => {
                   const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
-                  const omologo = getBlockerInZone(bpTeam, bpAssignment, omologoZone);
+                  const omologo = getBlockerInZone(bpTeam, bpAssignment, omologoZone, 'BP');
                   const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment);
                   return (
                     <tr key={zone} className="border-b">
@@ -462,7 +483,7 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 {attackZones.map((zone: Zone) => {
                   const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
-                  const omologo = getBlockerInZone(rpTeam, rpAssignment, omologoZone);
+                  const omologo = getBlockerInZone(rpTeam, rpAssignment, omologoZone, 'RP');
                   const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment);
                   return (
                     <tr key={zone} className="border-b">
