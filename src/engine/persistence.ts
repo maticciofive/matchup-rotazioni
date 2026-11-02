@@ -172,6 +172,7 @@ export function createExampleMatchupData(): AnalysisData {
       { id: 't-8', number: 8, name: 'Auriemma', role: 'S', tacticalLabel: 'S2' },
       { id: 't-10', number: 10, name: 'Fastoso', role: 'C', tacticalLabel: 'C1' },
       { id: 't-15', number: 15, name: 'Piccolo', role: 'C', tacticalLabel: 'C2' },
+      { id: 't-7', number: 7, name: 'Leone', role: 'OPP', tacticalLabel: '' },
       { id: 't-4', number: 4, name: 'Menna', role: 'P', tacticalLabel: '' },
     ],
     startingSix: [null, null, null, null, null, null],
@@ -179,8 +180,8 @@ export function createExampleMatchupData(): AnalysisData {
     initialRotation: 'P1',
   };
 
-  // RP layout: Z1=P, Z2=S, Z3=C, Z4=S, Z5=C, Z6=S
-  teamB.startingSix = ['t-p', 't-6', 't-10', 't-8', 't-15', 't-4'];
+  // P1 layout: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
+  teamB.startingSix = ['t-4', 't-6', 't-10', 't-7', 't-15', 't-8'];
 
   const setConfig: SetConfig = {
     setName: 'Set 1',

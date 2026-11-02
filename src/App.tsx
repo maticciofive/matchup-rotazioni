@@ -1847,6 +1847,8 @@ function OpposedLineups({
   // Squadra B (destra): vista dal proprio fondo campo verso la rete
   // Le prime linee sono contro (verso il centro)
   
+  // REGOLA: Mostra SEMPRE l'attaccante dalla logica tattica (sia in BP che in RP)
+  // La logica tattica determina chi attacca in base alla fase e alla modalità
   const frontA = getFrontRowZones().map(z => ({
     zone: z,
     player: getPlayerById(teamA, assignmentA[z]),
