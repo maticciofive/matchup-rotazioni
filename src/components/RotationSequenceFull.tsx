@@ -1,7 +1,7 @@
 import { Team, ZoneAssignment, RotationLabel, ROTATION_ORDER, Zone, Player } from '../types';
 import { DualCourtView } from './DualCourtView';
 import { MatchupSummaryDetailed } from './MatchupSummaryDetailed';
-import { getPlayerById, ATTACK_TO_BLOCK_ZONES, getCenterBlockerInRotation } from '../engine/matchup';
+import { getPlayerById, ATTACK_TO_BLOCK_ZONES, getCenterBlockerInRotation, getTransitionBlockType, canAttackFromBackRow } from '../engine/matchup';
 import { generateTheoreticalSequence, type SequenceState } from '../engine/rotations';
 
 interface RotationSequenceFullProps {
@@ -96,8 +96,12 @@ export function RotationSequenceFull({
         });
       });
 
-      // Attacchi di seconda linea: Opposto da posto 1
-      // L'opposto attacca da posto 1 contro il muro di posto 4 + centrale
+      // Attacchi di seconda linea:
+      // - Solo gli opposti (OPP) attaccano da posto 1
+      // - Solo gli schiacciatori (S) attaccano da posto 6
+      // - I centrali (C) e i palleggiatori (P) NON attaccano da seconda linea
+      
+      // Opposto da posto 1
       const attackerFromZone1A = getPlayerById(teamA, assignmentA[1]);
       if (attackerFromZone1A && attackerFromZone1A.role === 'OPP') {
         // Attacco da posto 1 → muro di posto 4 + posto 3 (centrale)
@@ -118,6 +122,38 @@ export function RotationSequenceFull({
                 rotations: [],
                 count: 0,
                 attackZone: 1,
+              });
+            }
+            const matchup = matchupsA.get(key)!;
+            if (!matchup.rotations.includes(state.rotationA)) {
+              matchup.rotations.push(state.rotationA);
+            }
+            matchup.count++;
+          }
+        });
+      }
+      
+      // Schiacciatore da posto 6
+      const attackerFromZone6A = getPlayerById(teamA, assignmentA[6]);
+      if (attackerFromZone6A && attackerFromZone6A.role === 'S') {
+        // Attacco da posto 6 → muro di posto 4 + posto 3 (centrale)
+        const blockZonesFrom6: Zone[] = [4, 3];
+        
+        blockZonesFrom6.forEach(blockZone => {
+          // IL SOLO giocatore che si trova in quella zona in questa rotazione
+          const playerId = assignmentB[blockZone];
+          const blocker = getPlayerById(teamB, playerId);
+          
+          // Registra il matchup solo se c'è un muratore (non libero)
+          if (blocker && blocker.role !== 'L') {
+            const key = `${attackerFromZone6A.id}-${blocker.id}-Z6`;
+            if (!matchupsA.has(key)) {
+              matchupsA.set(key, {
+                player: attackerFromZone6A,
+                opponent: blocker,
+                rotations: [],
+                count: 0,
+                attackZone: 6,
               });
             }
             const matchup = matchupsA.get(key)!;
@@ -165,8 +201,12 @@ export function RotationSequenceFull({
         });
       });
 
-      // Attacchi di seconda linea: Opposto da posto 1
-      // L'opposto attacca da posto 1 contro il muro di posto 4 + centrale
+      // Attacchi di seconda linea:
+      // - Solo gli opposti (OPP) attaccano da posto 1
+      // - Solo gli schiacciatori (S) attaccano da posto 6
+      // - I centrali (C) e i palleggiatori (P) NON attaccano da seconda linea
+      
+      // Opposto da posto 1
       const attackerFromZone1B = getPlayerById(teamB, assignmentB[1]);
       if (attackerFromZone1B && attackerFromZone1B.role === 'OPP') {
         // Attacco da posto 1 → muro di posto 4 + posto 3 (centrale)
@@ -187,6 +227,38 @@ export function RotationSequenceFull({
                 rotations: [],
                 count: 0,
                 attackZone: 1,
+              });
+            }
+            const matchup = matchupsB.get(key)!;
+            if (!matchup.rotations.includes(state.rotationB)) {
+              matchup.rotations.push(state.rotationB);
+            }
+            matchup.count++;
+          }
+        });
+      }
+      
+      // Schiacciatore da posto 6
+      const attackerFromZone6B = getPlayerById(teamB, assignmentB[6]);
+      if (attackerFromZone6B && attackerFromZone6B.role === 'S') {
+        // Attacco da posto 6 → muro di posto 4 + posto 3 (centrale)
+        const blockZonesFrom6: Zone[] = [4, 3];
+        
+        blockZonesFrom6.forEach(blockZone => {
+          // IL SOLO giocatore che si trova in quella zona in questa rotazione
+          const playerId = assignmentA[blockZone];
+          const blocker = getPlayerById(teamA, playerId);
+          
+          // Registra il matchup solo se c'è un muratore (non libero)
+          if (blocker && blocker.role !== 'L') {
+            const key = `${attackerFromZone6B.id}-${blocker.id}-Z6`;
+            if (!matchupsB.has(key)) {
+              matchupsB.set(key, {
+                player: attackerFromZone6B,
+                opponent: blocker,
+                rotations: [],
+                count: 0,
+                attackZone: 6,
               });
             }
             const matchup = matchupsB.get(key)!;
@@ -372,6 +444,11 @@ export function RotationSequenceFull({
         <h2 className="text-2xl font-bold mb-4">Matrice Matchup per Rotazione</h2>
         <p className="text-sm text-gray-600 mb-6">
           Per ogni stato della sequenza, mostra chi attacca e chi mura in ogni zona.
+          <br />
+          <span className="text-xs text-gray-500">
+            <strong>Terminologia:</strong> Attacco in BP contro Muro in RP = <strong className="text-blue-700">MURO RP TRANSIZIONE</strong> | 
+            Attacco in RP contro Muro in BP = <strong className="text-red-700">MURO BP TRANSIZIONE</strong>
+          </span>
         </p>
 
         <div className="overflow-x-auto">
@@ -381,6 +458,7 @@ export function RotationSequenceFull({
                 <th className="border p-2 text-left">Stato</th>
                 <th className="border p-2 text-left">Rotazione</th>
                 <th className="border p-2 text-left">Fase</th>
+                <th className="border p-2 text-left">Tipo Muro</th>
                 <th className="border p-2 text-left">Zona 4</th>
                 <th className="border p-2 text-left">Zona 3</th>
                 <th className="border p-2 text-left">Zona 2</th>
@@ -392,6 +470,10 @@ export function RotationSequenceFull({
                 const assignmentB = assignmentsB[state.rotationB];
                 const phaseA: 'BP' | 'RP' = state.servingTeam === 'A' ? 'BP' : 'RP';
                 const phaseB: 'BP' | 'RP' = state.servingTeam === 'B' ? 'BP' : 'RP';
+                
+                // Determina il tipo di muro in transizione per l'attacco di A
+                const blockTypeA = phaseA === 'BP' && phaseB === 'RP' ? 'MURO RP TRANSIZIONE' :
+                                   phaseA === 'RP' && phaseB === 'BP' ? 'MURO BP TRANSIZIONE' : 'MURO';
 
                 return (
                   <tr key={index} className="border-b">
@@ -403,6 +485,11 @@ export function RotationSequenceFull({
                     <td className="border p-2">
                       <div style={{ color: teamA.color }}>A: {phaseA}</div>
                       <div style={{ color: teamB.color }}>B: {phaseB}</div>
+                    </td>
+                    <td className="border p-2 text-xs">
+                      <div className={blockTypeA.includes('RP') ? 'text-blue-700 font-semibold' : blockTypeA.includes('BP') ? 'text-red-700 font-semibold' : ''}>
+                        {blockTypeA}
+                      </div>
                     </td>
                     <td className="border p-2 text-xs">
                       <div style={{ color: teamA.color }}>
@@ -453,7 +540,11 @@ export function RotationSequenceFull({
             <br />
             <strong>Nota:</strong> Il palleggiatore (P) mura ma non attacca in prima linea.
             <br />
+            <strong>Attacchi da seconda linea:</strong> Solo schiacciatori (S) da posto 6 e opposti (O) da posto 1.
+            <br />
             <span className="text-orange-600 font-semibold">[Z1]</span> indica attacchi di seconda linea dell'opposto da posto 1 contro muro di posto 4 + centrale.
+            <br />
+            <span className="text-purple-600 font-semibold">[Z6]</span> indica attacchi di seconda linea dello schiacciatore da posto 6 contro muro di posto 4 + centrale.
           </span>
         </p>
 
@@ -476,6 +567,7 @@ export function RotationSequenceFull({
                         <div key={idx} className="text-sm flex justify-between items-center">
                           <span>
                             {matchup.attackZone === 1 && <span className="text-orange-600 font-semibold">[Z1] </span>}
+                            {matchup.attackZone === 6 && <span className="text-purple-600 font-semibold">[Z6] </span>}
                             vs <span className="font-semibold">{matchup.opponent.number} {matchup.opponent.name}</span>
                             <span className="text-gray-500"> ({matchup.opponent.role})</span>
                           </span>
@@ -509,6 +601,7 @@ export function RotationSequenceFull({
                         <div key={idx} className="text-sm flex justify-between items-center">
                           <span>
                             {matchup.attackZone === 1 && <span className="text-orange-600 font-semibold">[Z1] </span>}
+                            {matchup.attackZone === 6 && <span className="text-purple-600 font-semibold">[Z6] </span>}
                             vs <span className="font-semibold">{matchup.opponent.number} {matchup.opponent.name}</span>
                             <span className="text-gray-500"> ({matchup.opponent.role})</span>
                           </span>

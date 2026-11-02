@@ -233,6 +233,55 @@ export function filterMatchupsWithoutLibero(matchups: Matchup[]): Matchup[] {
 }
 
 /**
+ * Determina il tipo di muro in transizione
+ * 
+ * Regola:
+ * - Attacco in BP contro Muro in RP = "MURO RP TRANSIZIONE"
+ * - Attacco in RP contro Muro in BP = "MURO BP TRANSIZIONE"
+ * 
+ * @param attackingPhase - Fase della squadra in attacco (BP o RP)
+ * @param defendingPhase - Fase della squadra in difesa (BP o RP)
+ * @returns Tipo di muro in transizione
+ */
+export function getTransitionBlockType(
+  attackingPhase: 'BP' | 'RP',
+  defendingPhase: 'BP' | 'RP'
+): string {
+  if (attackingPhase === 'BP' && defendingPhase === 'RP') {
+    return 'MURO RP TRANSIZIONE';
+  } else if (attackingPhase === 'RP' && defendingPhase === 'BP') {
+    return 'MURO BP TRANSIZIONE';
+  }
+  return 'MURO';
+}
+
+/**
+ * Verifica se un giocatore può attaccare da seconda linea
+ * 
+ * Regola:
+ * - Solo gli schiacciatori (S) possono attaccare da posto 6
+ * - Solo gli opposti (O) possono attaccare da posto 1
+ * - I centrali (C) e i palleggiatori (P) NON attaccano da seconda linea
+ * 
+ * @param player - Giocatore da verificare
+ * @param zone - Zona da cui attacca (1 o 6)
+ * @returns true se il giocatore può attaccare da quella zona
+ */
+export function canAttackFromBackRow(player: Player | null, zone: Zone): boolean {
+  if (!player) return false;
+  
+  if (zone === 6) {
+    // Solo schiacciatori attaccano da posto 6
+    return player.role === 'S';
+  } else if (zone === 1) {
+    // Solo opposti attaccano da posto 1
+    return player.role === 'OPP';
+  }
+  
+  return false;
+}
+
+/**
  * Formatta un giocatore per la visualizzazione
  */
 export function formatPlayer(player: Player | null): string {
