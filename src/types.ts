@@ -35,9 +35,24 @@ export interface SetConfig {
   servingTeam: 'A' | 'B';
 }
 
+export interface SimulationEvent {
+  type: 'point';
+  team: 'A' | 'B';
+}
+
+export interface SimulationState {
+  events: SimulationEvent[];
+  scoreA: number;
+  scoreB: number;
+  servingTeam: 'A' | 'B';
+  rotationA: RotationLabel;
+  rotationB: RotationLabel;
+}
+
 export interface AnalysisData {
   version: string;
   teamA: Team;
   teamB: Team;
   setConfig: SetConfig;
+  simulation: SimulationState | null;
 }

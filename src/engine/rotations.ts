@@ -76,3 +76,68 @@ export function getFrontRowZones(): Zone[] {
 export function getBackRowZones(): Zone[] {
   return [5, 6, 1];
 }
+
+export function getSetterId(team: Team): string | null {
+  const setter = team.roster.find(p => p.role === 'P');
+  return setter?.id || null;
+}
+
+export function verifyFullRotation(assignment: ZoneAssignment): boolean {
+  let current = { ...assignment };
+  for (let i = 0; i < 6; i++) {
+    current = rotateZoneAssignment(current, 1);
+  }
+  for (const zone of [1, 2, 3, 4, 5, 6] as Zone[]) {
+    if (current[zone] !== assignment[zone]) return false;
+  }
+  return true;
+}
+
+export interface SequenceState {
+  rotationA: RotationLabel;
+  rotationB: RotationLabel;
+  servingTeam: 'A' | 'B';
+}
+
+export function generateTheoreticalSequence(initial: SequenceState): SequenceState[] {
+  const sequence: SequenceState[] = [initial];
+  let current = { ...initial };
+  
+  for (let i = 0; i < 12; i++) {
+    current = advanceSideOut(current);
+    sequence.push(current);
+  }
+  
+  return sequence;
+}
+
+export function advanceSideOut(state: SequenceState): SequenceState {
+  if (state.servingTeam === 'A') {
+    return {
+      rotationA: state.rotationA,
+      rotationB: getNextRotation(state.rotationB),
+      servingTeam: 'B',
+    };
+  } else {
+    return {
+      rotationA: getNextRotation(state.rotationA),
+      rotationB: state.rotationB,
+      servingTeam: 'A',
+    };
+  }
+}
+
+export function formatSequenceState(
+  state: SequenceState,
+  teamAName: string,
+  teamBName: string
+): string {
+  const bpA = state.servingTeam === 'A' ? 'BP' : 'RP';
+  const bpB = state.servingTeam === 'B' ? 'BP' : 'RP';
+  return `${state.rotationA} [${teamAName}] ${bpA} → ${state.rotationB} [${teamBName}] ${bpB}`;
+}
+
+export function getOpposingBlockZone(attackZone: Zone): Zone {
+  const map: Partial<Record<Zone, Zone>> = { 4: 2, 3: 3, 2: 4 };
+  return map[attackZone] || 3;
+}
