@@ -67,19 +67,19 @@ export function getAttackerInTacticalZone(
   }
   
   // RP: attacco dalla DISPOSIZIONE TATTICA dopo la transizione
-  // RP Normal: S1 si sposta in Z4, OPP si sposta in Z2
-  // RP Special: OPP rimane in Z4, S1 rimane in Z2
+  // RP Normal: OPP attacca da Z4, S1 attacca da Z2
+  // RP Special: S1 attacca da Z4, OPP attacca da Z2
   if (phase === 'RP') {
     if (zone === 4) {
       return mode === 'normal' 
-        ? getPlayerByTacticalLabel(team, 'S1') 
-        : team.roster.find(p => p.role === 'OPP') || null;
+        ? team.roster.find(p => p.role === 'OPP') || null
+        : getPlayerByTacticalLabel(team, 'S1');
     }
     if (zone === 3) return getPlayerByTacticalLabel(team, 'C1');
     if (zone === 2) {
       return mode === 'normal'
-        ? team.roster.find(p => p.role === 'OPP') || null
-        : getPlayerByTacticalLabel(team, 'S1');
+        ? getPlayerByTacticalLabel(team, 'S1')
+        : team.roster.find(p => p.role === 'OPP') || null;
     }
   }
   
