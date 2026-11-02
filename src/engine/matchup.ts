@@ -87,17 +87,43 @@ export function getAttackerInTacticalZone(
 }
 
 /**
- * Trova il muratore in una zona specifica
- * REGOLA: Il muratore è chi si trova in quella zona nella rotazione REALE
+ * Trova il muratore in una zona specifica nella disposizione tattica di muro
+ * 
+ * In BP: i giocatori si spostano per murare nelle loro zone di competenza
+ * - S1 (in Z2 nella rotazione) → mura in Z4
+ * - OPP (in Z4 nella rotazione) → mura in Z2
+ * - C (in Z3 nella rotazione) → mura in Z3
+ * 
+ * In RP: i giocatori murano nella loro posizione di rotazione
  */
 export function getBlockerInZone(
   team: Team,
   assignment: ZoneAssignment,
-  zone: Zone
+  zone: Zone,
+  phase: 'BP' | 'RP'
 ): Player | null {
-  const playerId = assignment[zone];
-  const player = getPlayerById(team, playerId);
-  return player && player.role !== 'L' ? player : null;
+  if (phase === 'BP') {
+    // In BP, i giocatori si spostano per murare
+    if (zone === 2) {
+      // OPP mura in Z2 (si sposta da Z4)
+      return team.roster.find(p => p.role === 'OPP') || null;
+    }
+    if (zone === 3) {
+      // C mura in Z3 (rimane in Z3)
+      return getPlayerByTacticalLabel(team, 'C1');
+    }
+    if (zone === 4) {
+      // S1 mura in Z4 (si sposta da Z2)
+      return getPlayerByTacticalLabel(team, 'S1');
+    }
+  } else {
+    // In RP, i giocatori murano nella loro posizione di rotazione
+    const playerId = assignment[zone];
+    const player = getPlayerById(team, playerId);
+    return player && player.role !== 'L' ? player : null;
+  }
+  
+  return null;
 }
 
 /**
