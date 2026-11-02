@@ -50,13 +50,14 @@ export function getPlayerInRotationZone(
  * Restituisce il giocatore che ATTACCA da una zona specifica
  * 
  * BP: dalla posizione di rotazione
- * RP: dalla disposizione tattica dopo la transizione
+ * RP: dalla disposizione tattica dopo la transizione (dipende dalla rotazione)
  */
 export function getAttackerInTacticalZone(
   team: Team,
   zone: Zone,
   phase: 'BP' | 'RP',
-  mode: 'normal' | 'special'
+  mode: 'normal' | 'special',
+  rotation?: RotationLabel
 ): Player | null {
   // BP: attacco dalla POSIZIONE DI ROTAZIONE
   // In P1: Z2=S1, Z3=C1, Z4=OPP
@@ -67,19 +68,63 @@ export function getAttackerInTacticalZone(
   }
   
   // RP: attacco dalla DISPOSIZIONE TATTICA dopo la transizione
-  // RP Normal: OPP attacca da Z4, S1 attacca da Z2
-  // RP Special: S1 attacca da Z4, OPP attacca da Z2
+  // Le regole dipendono dalla rotazione
   if (phase === 'RP') {
-    if (zone === 4) {
-      return mode === 'normal' 
-        ? team.roster.find(p => p.role === 'OPP') || null
-        : getPlayerByTacticalLabel(team, 'S1');
+    const rot = rotation || 'P1';
+    
+    // P1 Normal: S1 da Z2, C2 da Z3, OPP da Z4, S2 da Z6
+    if (rot === 'P1' && mode === 'normal') {
+      if (zone === 2) return getPlayerByTacticalLabel(team, 'S1');
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C2');
+      if (zone === 4) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 6) return getPlayerByTacticalLabel(team, 'S2');
     }
-    if (zone === 3) return getPlayerByTacticalLabel(team, 'C1');
-    if (zone === 2) {
-      return mode === 'normal'
-        ? getPlayerByTacticalLabel(team, 'S1')
-        : team.roster.find(p => p.role === 'OPP') || null;
+    
+    // P1 Special: S1 da Z4, C2 da Z3, OPP da Z2, S2 da Z6
+    if (rot === 'P1' && mode === 'special') {
+      if (zone === 4) return getPlayerByTacticalLabel(team, 'S1');
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C2');
+      if (zone === 2) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 6) return getPlayerByTacticalLabel(team, 'S2');
+    }
+    
+    // P6: OPP da Z2, S2 da Z4, C2 da Z3
+    if (rot === 'P6') {
+      if (zone === 2) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 4) return getPlayerByTacticalLabel(team, 'S2');
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C2');
+    }
+    
+    // P5: OPP da Z2, C1 da Z3, S2 da Z4, S1 da Z6
+    if (rot === 'P5') {
+      if (zone === 2) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C1');
+      if (zone === 4) return getPlayerByTacticalLabel(team, 'S2');
+      if (zone === 6) return getPlayerByTacticalLabel(team, 'S1');
+    }
+    
+    // P4: OPP da Z1, C1 da Z3, S2 da Z4, S1 da Z6
+    if (rot === 'P4') {
+      if (zone === 1) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C1');
+      if (zone === 4) return getPlayerByTacticalLabel(team, 'S2');
+      if (zone === 6) return getPlayerByTacticalLabel(team, 'S1');
+    }
+    
+    // P3: S1 da Z4, C1 da Z3, OPP da Z1, S2 da Z6
+    if (rot === 'P3') {
+      if (zone === 4) return getPlayerByTacticalLabel(team, 'S1');
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C1');
+      if (zone === 1) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 6) return getPlayerByTacticalLabel(team, 'S2');
+    }
+    
+    // P2: S1 da Z4, C2 da Z3, OPP da Z1, S2 da Z6
+    if (rot === 'P2') {
+      if (zone === 4) return getPlayerByTacticalLabel(team, 'S1');
+      if (zone === 3) return getPlayerByTacticalLabel(team, 'C2');
+      if (zone === 1) return team.roster.find(p => p.role === 'OPP') || null;
+      if (zone === 6) return getPlayerByTacticalLabel(team, 'S2');
     }
   }
   

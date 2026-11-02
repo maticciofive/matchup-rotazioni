@@ -368,7 +368,7 @@ function AllRotationsMatchup({ data, selectedRotA, selectedRotB, servingTeam, mo
               <CourtDisplayCompact team={teamB} assignment={assignmentB} rotation={rotB} phase={bpB} />
             </div>
             
-            <MatchupTablesForRotation teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} bpA={bpA} bpB={bpB} modeA={modeA} modeB={modeB} />
+            <MatchupTablesForRotation teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} bpA={bpA} bpB={bpB} modeA={modeA} modeB={modeB} rotA={rotA} rotB={rotB} />
           </div>
         );
       })}
@@ -412,8 +412,9 @@ function CourtDisplayCompact({ team, assignment, rotation, phase }: { team: any;
   );
 }
 
-function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA, bpB, modeA, modeB }: any) {
-  const attackZones: Zone[] = [4, 3, 2];
+function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA, bpB, modeA, modeB, rotA, rotB }: any) {
+  const frontAttackZones: Zone[] = [4, 3, 2];
+  const backAttackZones: Zone[] = [6, 1];
 
   return (
     <div className="space-y-4">
@@ -424,6 +425,7 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
         const rpAssignment = bpA === 'RP' ? assignmentA : assignmentB;
         const bpAssignment = bpA === 'BP' ? assignmentA : assignmentB;
         const rpMode = bpA === 'RP' ? modeA : modeB;
+        const rpRot = bpA === 'RP' ? rotA : rotB;
 
         return (
           <div>
@@ -439,8 +441,8 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 </tr>
               </thead>
               <tbody>
-                {attackZones.map((zone: Zone) => {
-                  const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode);
+                {frontAttackZones.map((zone: Zone) => {
+                  const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
                   const omologo = getBlockerInZone(bpTeam, bpAssignment, omologoZone, 'BP');
                   const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment);
@@ -449,6 +451,17 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                       <td className="border p-2">Z{zone}: {attacker ? formatPlayerCompact(attacker) : '—'}</td>
                       <td className="border p-2">{omologo ? formatPlayerCompact(omologo) : '—'}</td>
                       <td className="border p-2">{centrale ? formatPlayerCompact(centrale) : '—'}</td>
+                    </tr>
+                  );
+                })}
+                {backAttackZones.map((zone: Zone) => {
+                  const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
+                  if (!attacker) return null;
+                  return (
+                    <tr key={zone} className="border-b bg-yellow-50">
+                      <td className="border p-2">Z{zone}: {formatPlayerCompact(attacker)} <span className="text-xs text-gray-500">(pipe)</span></td>
+                      <td className="border p-2 text-gray-400">—</td>
+                      <td className="border p-2 text-gray-400">—</td>
                     </tr>
                   );
                 })}
@@ -465,6 +478,7 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
         const bpAssignment = bpA === 'BP' ? assignmentA : assignmentB;
         const rpAssignment = bpA === 'RP' ? assignmentA : assignmentB;
         const bpMode = bpA === 'BP' ? modeA : modeB;
+        const bpRot = bpA === 'BP' ? rotA : rotB;
 
         return (
           <div>
@@ -480,8 +494,8 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 </tr>
               </thead>
               <tbody>
-                {attackZones.map((zone: Zone) => {
-                  const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode);
+                {frontAttackZones.map((zone: Zone) => {
+                  const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
                   const omologo = getBlockerInZone(rpTeam, rpAssignment, omologoZone, 'RP');
                   const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment);
@@ -490,6 +504,17 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                       <td className="border p-2">Z{zone}: {attacker ? formatPlayerCompact(attacker) : '—'}</td>
                       <td className="border p-2">{omologo ? formatPlayerCompact(omologo) : '—'}</td>
                       <td className="border p-2">{centrale ? formatPlayerCompact(centrale) : '—'}</td>
+                    </tr>
+                  );
+                })}
+                {backAttackZones.map((zone: Zone) => {
+                  const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
+                  if (!attacker) return null;
+                  return (
+                    <tr key={zone} className="border-b bg-yellow-50">
+                      <td className="border p-2">Z{zone}: {formatPlayerCompact(attacker)} <span className="text-xs text-gray-500">(pipe)</span></td>
+                      <td className="border p-2 text-gray-400">—</td>
+                      <td className="border p-2 text-gray-400">—</td>
                     </tr>
                   );
                 })}
