@@ -118,7 +118,7 @@ export function buildZoneAssignment(startingSix: (string | null)[]): Record<numb
   };
 }
 
-export function exportToJSON( AnalysisData): string {
+export function exportToJSON(data: AnalysisData): string {
   return JSON.stringify(data, null, 2);
 }
 

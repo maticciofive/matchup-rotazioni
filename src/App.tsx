@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { AnalysisData, Zone, ZoneAssignment, RotationLabel, ROTATION_ORDER, Player } from './types';
-import { getAssignmentForRotation, getPlayerById, formatPlayerCompact, getFrontRowZones, getBackRowZones, generateTheoreticalSequence, type SequenceState } from './engine/rotations';
-import { createExampleMatchupData, buildZoneAssignment, saveToLocalStorage, loadFromLocalStorage, exportToJSON, importFromJSON } from './engine/persistence';
-import { getAttackerInTacticalZone, getBlockerInZone, getCenterBlockerInRotation, isLibero, isLiberoInStartingSix } from './engine/matchup';
+import { getAssignmentForRotation, getPlayerById, formatPlayerCompact } from './engine/rotations';
+import { createExampleMatchupData, buildZoneAssignment, saveToLocalStorage, loadFromLocalStorage } from './engine/persistence';
+import { getAttackerInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from './engine/matchup';
 
 type AttackMode = 'normal' | 'special';
-type TabId = 'teams' | 'set' | 'matchup' | 'sequence' | 'simulation' | 'matrix' | 'print';
+type TabId = 'teams' | 'set' | 'matchup' | 'sequence' | 'print';
 
 export default function App() {
   const [data, setData] = useState<AnalysisData | null>(null);
@@ -44,71 +44,25 @@ export default function App() {
     setData(createExampleMatchupData());
   };
 
-  const handleExport = () => {
-    if (!data) return;
-    const json = exportToJSON(data);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'analisi-rotazioni.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const result = ev.target?.result as string;
-        const imported = importFromJSON(result);
-        if (imported) {
-          setData(imported);
-        } else {
-          alert('File JSON non valido');
-        }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
-  };
-
   const tabs: { id: TabId; label: string }[] = [
     { id: 'teams', label: '👥 Squadre' },
     { id: 'set', label: '⚙️ Set' },
     { id: 'matchup', label: '⚔️ Matchup' },
     { id: 'sequence', label: '📊 Sequenza' },
-    { id: 'simulation', label: '🎮 Simulazione' },
-    { id: 'matrix', label: '📋 Matrice' },
     { id: 'print', label: '🖨️ Stampa' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-md p-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold">🏐 Analisi Rotazioni</h1>
-          <div className="flex gap-2">
-            <button onClick={loadExample} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              Carica Esempio
-            </button>
-            <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-              Esporta
-            </button>
-            <button onClick={handleImport} className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-              Importa
-            </button>
-          </div>
+          <button onClick={loadExample} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Carica Esempio
+          </button>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto flex gap-2 p-2 overflow-x-auto">
           {tabs.map(tab => (
@@ -125,21 +79,17 @@ export default function App() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-7xl mx-auto p-4">
         {activeTab === 'teams' && <TeamsView data={data} setData={setData} />}
-        {activeTab === 'set' && <SetView data={data} setData={setData} selectedRotA={selectedRotA} selectedRotB={selectedRotB} setSelectedRotA={setSelectedRotA} setSelectedRotB={setSelectedRotB} servingTeam={servingTeam} setServingTeam={setServingTeam} assignmentA={assignmentA} assignmentB={assignmentB} />}
+        {activeTab === 'set' && <SetView data={data} selectedRotA={selectedRotA} selectedRotB={selectedRotB} setSelectedRotA={setSelectedRotA} setSelectedRotB={setSelectedRotB} servingTeam={servingTeam} setServingTeam={setServingTeam} assignmentA={assignmentA} assignmentB={assignmentB} />}
         {activeTab === 'matchup' && <MatchupView teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} selectedRotA={selectedRotA} selectedRotB={selectedRotB} setSelectedRotA={setSelectedRotA} setSelectedRotB={setSelectedRotB} servingTeam={servingTeam} setServingTeam={setServingTeam} modeA={modeA} setModeA={setModeA} modeB={modeB} setModeB={setModeB} bpA={bpA} bpB={bpB} />}
-        {activeTab === 'sequence' && <SequenceView data={data} teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} />}
-        {activeTab === 'simulation' && <SimulationView data={data} setData={setData} teamA={teamA} teamB={teamB} />}
-        {activeTab === 'matrix' && <MatrixView data={data} teamA={teamA} teamB={teamB} />}
-        {activeTab === 'print' && <PrintView data={data} teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} />}
+        {activeTab === 'sequence' && <SequenceView data={data} teamA={teamA} teamB={teamB} />}
+        {activeTab === 'print' && <PrintView data={data} teamA={teamA} teamB={teamB} />}
       </div>
     </div>
   );
 }
 
-// Teams View
 function TeamsView({ data, setData }: { data: AnalysisData; setData: (d: AnalysisData) => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -150,23 +100,137 @@ function TeamsView({ data, setData }: { data: AnalysisData; setData: (d: Analysi
 }
 
 function TeamEditor({ team, label, onChange }: { team: any; label: string; onChange: (t: any) => void }) {
+  const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
+
+  const addPlayer = () => {
+    const newPlayer: Player = {
+      id: `${team.id}-p-${Date.now()}`,
+      number: team.roster.length + 1,
+      name: 'Nuovo Giocatore',
+      role: 'S',
+      tacticalLabel: '',
+    };
+    onChange({ ...team, roster: [...team.roster, newPlayer] });
+  };
+
+  const updatePlayer = (id: string, updates: Partial<Player>) => {
+    onChange({
+      ...team,
+      roster: team.roster.map((p: Player) => p.id === id ? { ...p, ...updates } : p),
+    });
+  };
+
+  const removePlayer = (id: string) => {
+    onChange({
+      ...team,
+      roster: team.roster.filter((p: Player) => p.id !== id),
+      startingSix: team.startingSix.map((s: string | null) => s === id ? null : s),
+    });
+  };
+
+  const setZone = (zoneIndex: number, playerId: string | null) => {
+    const newSix = [...team.startingSix];
+    newSix[zoneIndex] = playerId;
+    onChange({ ...team, startingSix: newSix });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold mb-4" style={{ color: team.color }}>{label}: {team.name}</h2>
-      <div className="space-y-2">
-        {team.roster.map((player: Player) => (
-          <div key={player.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-            <span>#{player.number} {player.name} ({player.role})</span>
-            {player.tacticalLabel && <span className="text-xs bg-blue-100 px-2 py-1 rounded">{player.tacticalLabel}</span>}
-          </div>
-        ))}
+      
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="text-xs text-gray-500">Nome</label>
+          <input value={team.name} onChange={e => onChange({ ...team, name: e.target.value })}
+            className="w-full border rounded px-2 py-1 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500">Colore</label>
+          <input type="color" value={team.color} onChange={e => onChange({ ...team, color: e.target.value })}
+            className="w-full h-8 border rounded cursor-pointer" />
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-semibold text-sm">Rosa ({team.roster.length} giocatori)</h3>
+          <button onClick={addPlayer} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
+            + Aggiungi
+          </button>
+        </div>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {team.roster.map((player: Player) => (
+            <div key={player.id} className="border rounded p-2 text-sm">
+              {editingPlayer === player.id ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="number" value={player.number} onChange={e => updatePlayer(player.id, { number: parseInt(e.target.value) || 0 })}
+                    className="border rounded px-2 py-1 w-16" placeholder="N°" />
+                  <input value={player.name} onChange={e => updatePlayer(player.id, { name: e.target.value })}
+                    className="border rounded px-2 py-1" placeholder="Nome" />
+                  <select value={player.role} onChange={e => updatePlayer(player.id, { role: e.target.value as Player['role'] })}
+                    className="border rounded px-2 py-1">
+                    <option value="P">P</option>
+                    <option value="OPP">OPP</option>
+                    <option value="S">S</option>
+                    <option value="C">C</option>
+                    <option value="L">L</option>
+                  </select>
+                  <select value={player.tacticalLabel} onChange={e => updatePlayer(player.id, { tacticalLabel: e.target.value as Player['tacticalLabel'] })}
+                    className="border rounded px-2 py-1">
+                    <option value="">—</option>
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="C1">C1</option>
+                    <option value="C2">C2</option>
+                  </select>
+                  <div className="col-span-2 flex gap-2">
+                    <button onClick={() => setEditingPlayer(null)} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">OK</button>
+                    <button onClick={() => removePlayer(player.id)} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Elimina</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center cursor-pointer" onClick={() => setEditingPlayer(player.id)}>
+                  <span>#{player.number} {player.name} · {player.role}{player.tacticalLabel ? ` (${player.tacticalLabel})` : ''}</span>
+                  <span className="text-gray-400 text-xs">modifica</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-sm mb-2">Sestetto (disposizione P1)</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { zone: 4, label: 'Z4' },
+            { zone: 3, label: 'Z3' },
+            { zone: 2, label: 'Z2' },
+            { zone: 5, label: 'Z5' },
+            { zone: 6, label: 'Z6' },
+            { zone: 1, label: 'Z1' },
+          ].map(({ zone, label }) => (
+            <div key={zone} className="border rounded p-2">
+              <label className="text-xs text-gray-500 block mb-1">{label}</label>
+              <select
+                value={team.startingSix[zone - 1] || ''}
+                onChange={e => setZone(zone - 1, e.target.value || null)}
+                className="w-full border rounded px-1 py-1 text-xs"
+              >
+                <option value="">—</option>
+                {team.roster.map((p: Player) => (
+                  <option key={p.id} value={p.id}>#{p.number} {p.name}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// Set View
-function SetView({ data, setData, selectedRotA, selectedRotB, setSelectedRotA, setSelectedRotB, servingTeam, setServingTeam, assignmentA, assignmentB }: any) {
+function SetView({ data, selectedRotA, selectedRotB, setSelectedRotA, setSelectedRotB, servingTeam, setServingTeam, assignmentA, assignmentB }: any) {
   const { teamA, teamB } = data;
   const bpA = servingTeam === 'A' ? 'BP' : 'RP';
   const bpB = servingTeam === 'B' ? 'BP' : 'RP';
@@ -178,13 +242,13 @@ function SetView({ data, setData, selectedRotA, selectedRotB, setSelectedRotA, s
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="text-sm font-semibold">{teamA.name}</label>
-            <select value={selectedRotA} onChange={(e) => setSelectedRotA(e.target.value)} className="w-full border rounded p-2 mt-1">
+            <select value={selectedRotA} onChange={(e: any) => setSelectedRotA(e.target.value)} className="w-full border rounded p-2 mt-1">
               {ROTATION_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
             <label className="text-sm font-semibold">{teamB.name}</label>
-            <select value={selectedRotB} onChange={(e) => setSelectedRotB(e.target.value)} className="w-full border rounded p-2 mt-1">
+            <select value={selectedRotB} onChange={(e: any) => setSelectedRotB(e.target.value)} className="w-full border rounded p-2 mt-1">
               {ROTATION_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
@@ -218,7 +282,7 @@ function CourtDisplay({ team, assignment, rotation, phase }: { team: any; assign
     <div className="border rounded-lg p-4" style={{ borderColor: team.color }}>
       <h4 className="font-bold mb-2 text-center" style={{ color: team.color }}>{team.name} - {rotation} ({phase})</h4>
       <div className="text-xs text-gray-500 text-center mb-2">Prima linea (zone 2-3-4)</div>
-      {[2, 3, 4].map(zone => {
+      {[2, 3, 4].map((zone: number) => {
         const player = getPlayerById(team, assignment[zone]);
         return (
           <div key={zone} className="flex justify-between items-center bg-white rounded px-2 py-1 text-xs border mb-1">
@@ -228,7 +292,7 @@ function CourtDisplay({ team, assignment, rotation, phase }: { team: any; assign
         );
       })}
       <div className="text-xs text-gray-500 text-center mt-2 mb-2">Seconda linea (zone 1-5-6)</div>
-      {[1, 5, 6].map(zone => {
+      {[1, 5, 6].map((zone: number) => {
         const player = getPlayerById(team, assignment[zone]);
         return (
           <div key={zone} className="flex justify-between items-center bg-white/60 rounded px-2 py-1 text-xs border border-dashed mb-1">
@@ -241,7 +305,6 @@ function CourtDisplay({ team, assignment, rotation, phase }: { team: any; assign
   );
 }
 
-// Matchup View
 function MatchupView({ teamA, teamB, assignmentA, assignmentB, selectedRotA, selectedRotB, setSelectedRotA, setSelectedRotB, servingTeam, setServingTeam, modeA, setModeA, modeB, setModeB, bpA, bpB }: any) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -250,20 +313,20 @@ function MatchupView({ teamA, teamB, assignmentA, assignmentB, selectedRotA, sel
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="border rounded-lg p-4" style={{ borderColor: teamA.color }}>
           <h3 className="font-bold mb-3" style={{ color: teamA.color }}>{teamA.name}</h3>
-          <select value={selectedRotA} onChange={(e) => setSelectedRotA(e.target.value)} className="w-full border rounded p-2 mb-2">
+          <select value={selectedRotA} onChange={(e: any) => setSelectedRotA(e.target.value)} className="w-full border rounded p-2 mb-2">
             {ROTATION_ORDER.map((r: RotationLabel) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <select value={modeA} onChange={(e) => setModeA(e.target.value)} className="w-full border rounded p-2">
+          <select value={modeA} onChange={(e: any) => setModeA(e.target.value)} className="w-full border rounded p-2">
             <option value="normal">P1 normale</option>
             <option value="special">P1 special</option>
           </select>
         </div>
         <div className="border rounded-lg p-4" style={{ borderColor: teamB.color }}>
           <h3 className="font-bold mb-3" style={{ color: teamB.color }}>{teamB.name}</h3>
-          <select value={selectedRotB} onChange={(e) => setSelectedRotB(e.target.value)} className="w-full border rounded p-2 mb-2">
+          <select value={selectedRotB} onChange={(e: any) => setSelectedRotB(e.target.value)} className="w-full border rounded p-2 mb-2">
             {ROTATION_ORDER.map((r: RotationLabel) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <select value={modeB} onChange={(e) => setModeB(e.target.value)} className="w-full border rounded p-2">
+          <select value={modeB} onChange={(e: any) => setModeB(e.target.value)} className="w-full border rounded p-2">
             <option value="normal">P1 normale</option>
             <option value="special">P1 special</option>
           </select>
@@ -288,13 +351,14 @@ function MatchupView({ teamA, teamB, assignmentA, assignmentB, selectedRotA, sel
         </p>
       </div>
 
-      {/* Matchup Tables */}
       <MatchupTables teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} bpA={bpA} bpB={bpB} modeA={modeA} modeB={modeB} />
     </div>
   );
 }
 
 function MatchupTables({ teamA, teamB, assignmentA, assignmentB, bpA, bpB, modeA, modeB }: any) {
+  const attackZones: Zone[] = [4, 3, 2];
+
   return (
     <div className="space-y-6">
       {/* PRIMA: Attacco RP → Muro BP */}
@@ -313,20 +377,20 @@ function MatchupTables({ teamA, teamB, assignmentA, assignmentB, bpA, bpB, modeA
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">Attacco Z4</th>
+                  <th className="border p-2 text-left">Attacco</th>
                   <th className="border p-2 text-left">→ Muro Z2</th>
                   <th className="border p-2 text-left">+ Muro Z3</th>
                 </tr>
               </thead>
               <tbody>
-                {[4, 3, 2].map((zone: Zone) => {
+                {attackZones.map((zone: Zone) => {
                   const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
                   const omologo = getBlockerInZone(bpTeam, bpAssignment, omologoZone);
                   const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment);
                   return (
                     <tr key={zone} className="border-b">
-                      <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : '—'}</td>
+                      <td className="border p-2">Z{zone}: {attacker ? formatPlayerCompact(attacker) : '—'}</td>
                       <td className="border p-2">{omologo ? formatPlayerCompact(omologo) : '—'}</td>
                       <td className="border p-2">{centrale ? formatPlayerCompact(centrale) : '—'}</td>
                     </tr>
@@ -354,20 +418,20 @@ function MatchupTables({ teamA, teamB, assignmentA, assignmentB, bpA, bpB, modeA
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">Attacco Z4</th>
+                  <th className="border p-2 text-left">Attacco</th>
                   <th className="border p-2 text-left">→ Muro Z2</th>
                   <th className="border p-2 text-left">+ Muro Z3</th>
                 </tr>
               </thead>
               <tbody>
-                {[4, 3, 2].map((zone: Zone) => {
+                {attackZones.map((zone: Zone) => {
                   const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
                   const omologo = getBlockerInZone(rpTeam, rpAssignment, omologoZone);
                   const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment);
                   return (
                     <tr key={zone} className="border-b">
-                      <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : '—'}</td>
+                      <td className="border p-2">Z{zone}: {attacker ? formatPlayerCompact(attacker) : '—'}</td>
                       <td className="border p-2">{omologo ? formatPlayerCompact(omologo) : '—'}</td>
                       <td className="border p-2">{centrale ? formatPlayerCompact(centrale) : '—'}</td>
                     </tr>
@@ -382,23 +446,15 @@ function MatchupTables({ teamA, teamB, assignmentA, assignmentB, bpA, bpB, modeA
   );
 }
 
-// Sequence View
-function SequenceView({ data, teamA, teamB, assignmentA, assignmentB }: any) {
-  const initial: SequenceState = {
-    rotationA: data.setConfig.rotationA,
-    rotationB: data.setConfig.rotationB,
-    servingTeam: data.setConfig.servingTeam,
-  };
-  const sequence = generateTheoreticalSequence(initial);
-
+function SequenceView({ data, teamA, teamB }: any) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold mb-4">Sequenza Teorica dei 12 Stati</h2>
       <div className="space-y-2">
-        {sequence.slice(0, -1).map((state: SequenceState, idx: number) => (
-          <div key={idx} className="p-3 bg-gray-50 rounded border">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div key={i} className="p-3 bg-gray-50 rounded border">
             <p className="font-mono text-sm">
-              {idx + 1}. {state.rotationA} [{teamA.name}] {state.servingTeam === 'A' ? 'BP' : 'RP'} → {state.rotationB} [{teamB.name}] {state.servingTeam === 'B' ? 'BP' : 'RP'}
+              Stato {i + 1}: {ROTATION_ORDER[i % 6]} [{teamA.name}] {i % 2 === 0 ? 'BP' : 'RP'} → {ROTATION_ORDER[(i + 1) % 6]} [{teamB.name}] {i % 2 === 0 ? 'RP' : 'BP'}
             </p>
           </div>
         ))}
@@ -407,86 +463,7 @@ function SequenceView({ data, teamA, teamB, assignmentA, assignmentB }: any) {
   );
 }
 
-// Simulation View
-function SimulationView({ data, setData, teamA, teamB }: any) {
-  const sim = data.simulation || { events: [], scoreA: 0, scoreB: 0, servingTeam: data.setConfig.servingTeam, rotationA: data.setConfig.rotationA, rotationB: data.setConfig.rotationB };
-
-  const scorePoint = (team: 'A' | 'B') => {
-    const newSim = { ...sim };
-    if (team === 'A') {
-      newSim.scoreA++;
-      if (sim.servingTeam === 'B') {
-        newSim.servingTeam = 'A';
-        newSim.rotationA = ROTATION_ORDER[(ROTATION_ORDER.indexOf(sim.rotationA) + 1) % 6];
-      }
-    } else {
-      newSim.scoreB++;
-      if (sim.servingTeam === 'A') {
-        newSim.servingTeam = 'B';
-        newSim.rotationB = ROTATION_ORDER[(ROTATION_ORDER.indexOf(sim.rotationB) + 1) % 6];
-      }
-    }
-    newSim.events = [...sim.events, { type: 'point' as const, team }];
-    setData({ ...data, simulation: newSim });
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-bold mb-4">Simulazione Gara</h2>
-      <div className="grid grid-cols-3 gap-4 items-center mb-6">
-        <div className="text-center p-4 rounded-lg" style={{ backgroundColor: teamA.color + '20' }}>
-          <div className="text-sm font-bold" style={{ color: teamA.color }}>{teamA.name}</div>
-          <div className="text-4xl font-bold">{sim.scoreA}</div>
-        </div>
-        <div className="text-center text-2xl font-bold text-gray-400">VS</div>
-        <div className="text-center p-4 rounded-lg" style={{ backgroundColor: teamB.color + '20' }}>
-          <div className="text-sm font-bold" style={{ color: teamB.color }}>{teamB.name}</div>
-          <div className="text-4xl font-bold">{sim.scoreB}</div>
-        </div>
-      </div>
-      <div className="flex gap-3 justify-center">
-        <button onClick={() => scorePoint('A')} className="px-6 py-3 rounded-lg font-bold text-white" style={{ backgroundColor: teamA.color }}>
-          Punto {teamA.name}
-        </button>
-        <button onClick={() => scorePoint('B')} className="px-6 py-3 rounded-lg font-bold text-white" style={{ backgroundColor: teamB.color }}>
-          Punto {teamB.name}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Matrix View
-function MatrixView({ data, teamA, teamB }: any) {
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-bold mb-4">Matrice 6×6 delle Rotazioni</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr>
-              <th className="border p-2 bg-gray-100">{teamA.name} \ {teamB.name}</th>
-              {ROTATION_ORDER.map(r => <th key={r} className="border p-2 bg-blue-50">{r}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {ROTATION_ORDER.map(rowRot => (
-              <tr key={rowRot}>
-                <td className="border p-2 bg-red-50 font-bold">{rowRot}</td>
-                {ROTATION_ORDER.map(colRot => (
-                  <td key={colRot} className="border p-2 text-center">{rowRot}×{colRot}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// Print View
-function PrintView({ data, teamA, teamB, assignmentA, assignmentB }: any) {
+function PrintView({ data, teamA, teamB }: any) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold mb-4">Report di Stampa</h2>
