@@ -10,9 +10,6 @@ export default defineConfig({
     viteSingleFile(),
   ],
   base: '/matchup-rotazioni/',
-  build: {
-    cssCodeSplit: false,
-  },
   server: {
     host: "0.0.0.0",
     port: 3000,
