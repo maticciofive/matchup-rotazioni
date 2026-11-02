@@ -107,7 +107,11 @@ export function getPlayerInRotationZone(
 /**
  * DISPOSIZIONE TATTICA DI ATTACCO
  * Restituisce il giocatore che ATTACCA da una zona specifica in base alla fase e modalità
- * QUESTA È LA DISPOSIZIONE TATTICA, NON QUELLA DI ROTAZIONE!
+ * 
+ * REGOLA FONDAMENTALE:
+ * - In BP (Break Point): la squadra attacca dalla POSIZIONE DI ROTAZIONE
+ * - In RP (Ricezione Punto): la squadra attacca dalla DISPOSIZIONE TATTICA dopo la transizione
+ * - S2 NON si sposta in Z4! S2 rimane in seconda linea (Z6) e può attaccare al massimo da posto 6
  * 
  * @param team - Squadra
  * @param zone - Zona da cui attacca
@@ -121,46 +125,47 @@ export function getAttackerInTacticalZone(
   phase: 'BP' | 'RP',
   mode: 'normal' | 'special'
 ): Player | null {
-  // In RP, la disposizione tattica di attacco è SEMPRE:
-  // - Z4: S2 (si sposta dalla seconda linea)
-  // - Z3: C1 (centrale)
-  // - Z2: S1 (normal) o OPP (special)
-  if (phase === 'RP') {
+  // In BP (Break Point), la squadra attacca dalla POSIZIONE DI ROTAZIONE
+  // In P1: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
+  if (phase === 'BP') {
     if (zone === 4) {
-      return getPlayerByTacticalLabel(team, 'S2');
+      // In P1, OPP è in Z4
+      return team.roster.find(p => p.role === 'OPP') || null;
     }
     if (zone === 3) {
+      // In P1, C1 è in Z3
       return getPlayerByTacticalLabel(team, 'C1');
     }
     if (zone === 2) {
-      if (mode === 'normal') {
-        return getPlayerByTacticalLabel(team, 'S1');
-      } else {
-        return team.roster.find(p => p.role === 'OPP') || null;
-      }
+      // In P1, S1 è in Z2
+      return getPlayerByTacticalLabel(team, 'S1');
     }
   }
   
-  // In BP, la disposizione tattica di attacco è:
-  // - Z4: OPP (normal) o S1 (special)
-  // - Z3: C1 (centrale)
-  // - Z2: S1 (normal) o OPP (special)
-  if (phase === 'BP') {
+  // In RP (Ricezione Punto), la squadra attacca dalla DISPOSIZIONE TATTICA dopo la transizione
+  // Dopo la ricezione, i giocatori si spostano nelle loro posizioni tattiche
+  // S2 NON si sposta in Z4! S2 rimane in Z6 (seconda linea)
+  if (phase === 'RP') {
     if (zone === 4) {
+      // In RP P1 Normal: S1 si sposta da Z2 a Z4
+      // In RP P1 Special: OPP rimane in Z4
       if (mode === 'normal') {
-        return team.roster.find(p => p.role === 'OPP') || null;
-      } else {
         return getPlayerByTacticalLabel(team, 'S1');
+      } else {
+        return team.roster.find(p => p.role === 'OPP') || null;
       }
     }
     if (zone === 3) {
+      // C1 rimane in Z3
       return getPlayerByTacticalLabel(team, 'C1');
     }
     if (zone === 2) {
+      // In RP P1 Normal: OPP si sposta da Z4 a Z2
+      // In RP P1 Special: S1 rimane in Z2
       if (mode === 'normal') {
-        return getPlayerByTacticalLabel(team, 'S1');
-      } else {
         return team.roster.find(p => p.role === 'OPP') || null;
+      } else {
+        return getPlayerByTacticalLabel(team, 'S1');
       }
     }
   }

@@ -1209,9 +1209,11 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   };
 
   // Calcola attaccante in base a modalità e fase
-  // REGOLA: In prima linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
-  // In seconda linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
-  // REGOLA: Le etichette tattiche (S1, S2, C1, C2) identificano UNIVOCAMENTE il giocatore
+  // REGOLA FONDAMENTALE:
+  // - In BP: la squadra attacca dalla POSIZIONE DI ROTAZIONE
+  // - In RP: la squadra attacca dalla DISPOSIZIONE TATTICA dopo la transizione
+  // - S2 NON si sposta in Z4! S2 rimane in seconda linea (Z6) e può attaccare al massimo da posto 6
+  // - In P1: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
   const getAttacker = (
     team: Team,
     assignment: ZoneAssignment,
@@ -1219,55 +1221,47 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     phase: 'BP' | 'RP',
     mode: AttackMode
   ): Player | null => {
-    // In RP, la disposizione tattica di attacco è SEMPRE:
-    // - Z4: S2 (che si sposta dalla seconda linea)
-    // - Z3: C1 (centrale in prima linea)
-    // - Z2: S1 (normale) o OPP (special)
-    if (phase === 'RP') {
+    // In BP (Break Point), la squadra attacca dalla POSIZIONE DI ROTAZIONE
+    // In P1: Z2=S1, Z3=C1, Z4=OPP
+    if (phase === 'BP') {
       if (zone === 4) {
-        // S2 attacca da posto 4 (si sposta dalla seconda linea)
-        return findByTacticalLabel(team, 'S2');
+        // In P1, OPP è in Z4
+        return team.roster.find(p => p.role === 'OPP') || null;
       }
       if (zone === 3) {
-        // C1 attacca da posto 3 (centrale)
+        // In P1, C1 è in Z3
         return findByTacticalLabel(team, 'C1');
       }
       if (zone === 2) {
-        // In normale: S1 attacca da posto 2
-        // In special: OPP attacca da posto 2
-        if (mode === 'normal') {
-          return findByTacticalLabel(team, 'S1');
-        } else {
-          return team.roster.find(p => p.role === 'OPP') || null;
-        }
+        // In P1, S1 è in Z2
+        return findByTacticalLabel(team, 'S1');
       }
     }
     
-    // In BP, la disposizione tattica di attacco è:
-    // - Z4: OPP (normale) o S1 (special)
-    // - Z3: C1 (centrale)
-    // - Z2: S1 (normale) o OPP (special)
-    if (phase === 'BP') {
+    // In RP (Ricezione Punto), la squadra attacca dalla DISPOSIZIONE TATTICA dopo la transizione
+    // Dopo la ricezione, i giocatori si spostano nelle loro posizioni tattiche
+    // S2 NON si sposta in Z4! S2 rimane in Z6 (seconda linea)
+    if (phase === 'RP') {
       if (zone === 4) {
-        // In normale: OPP attacca da posto 4
-        // In special: S1 attacca da posto 4
+        // In RP P1 Normal: S1 si sposta da Z2 a Z4
+        // In RP P1 Special: OPP rimane in Z4
         if (mode === 'normal') {
-          return team.roster.find(p => p.role === 'OPP') || null;
-        } else {
           return findByTacticalLabel(team, 'S1');
+        } else {
+          return team.roster.find(p => p.role === 'OPP') || null;
         }
       }
       if (zone === 3) {
-        // C1 attacca da posto 3 (centrale)
+        // C1 rimane in Z3
         return findByTacticalLabel(team, 'C1');
       }
       if (zone === 2) {
-        // In normale: S1 attacca da posto 2
-        // In special: OPP attacca da posto 2
+        // In RP P1 Normal: OPP si sposta da Z4 a Z2
+        // In RP P1 Special: S1 rimane in Z2
         if (mode === 'normal') {
-          return findByTacticalLabel(team, 'S1');
-        } else {
           return team.roster.find(p => p.role === 'OPP') || null;
+        } else {
+          return findByTacticalLabel(team, 'S1');
         }
       }
     }
@@ -1306,8 +1300,11 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   };
 
   // Ottieni il terzetto di prima linea per il muro a 3
-  // REGOLA: In prima linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
-  // REGOLA: Le etichette tattiche (S1, S2, C1, C2) identificano UNIVOCAMENTE il giocatore
+  // REGOLA FONDAMENTALE:
+  // - In BP: la squadra attacca dalla POSIZIONE DI ROTAZIONE
+  // - In RP: la squadra attacca dalla DISPOSIZIONE TATTICA dopo la transizione
+  // - S2 NON si sposta in Z4! S2 rimane in seconda linea (Z6)
+  // - In P1: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
   const getTripleBlock = (
     team: Team,
     assignment: ZoneAssignment,
@@ -1315,43 +1312,31 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     mode: AttackMode,
     rotation: RotationLabel
   ): { zona4: Player | null; zona3: Player | null; zona2: Player | null } => {
-    // In RP, la disposizione tattica è SEMPRE:
-    // - Z4: S2
-    // - Z3: C1
-    // - Z2: S1 (normale) o OPP (special)
-    if (phase === 'RP') {
-      if (mode === 'normal') {
-        return {
-          zona4: findByTacticalLabel(team, 'S2'),
-          zona3: findByTacticalLabel(team, 'C1'),
-          zona2: findByTacticalLabel(team, 'S1'),
-        };
-      } else {
-        // special
-        return {
-          zona4: findByTacticalLabel(team, 'S2'),
-          zona3: findByTacticalLabel(team, 'C1'),
-          zona2: team.roster.find(p => p.role === 'OPP') || null,
-        };
-      }
+    // In BP (Break Point), la squadra attacca dalla POSIZIONE DI ROTAZIONE
+    // In P1: Z2=S1, Z3=C1, Z4=OPP
+    if (phase === 'BP') {
+      return {
+        zona4: team.roster.find(p => p.role === 'OPP') || null, // OPP è in Z4 in P1
+        zona3: findByTacticalLabel(team, 'C1'), // C1 è in Z3 in P1
+        zona2: findByTacticalLabel(team, 'S1'), // S1 è in Z2 in P1
+      };
     }
     
-    // In BP, la disposizione tattica è:
-    // - Z4: OPP (normale) o S1 (special)
-    // - Z3: C1
-    // - Z2: S1 (normale) o OPP (special)
+    // In RP (Ricezione Punto), la squadra attacca dalla DISPOSIZIONE TATTICA dopo la transizione
+    // S2 NON si sposta in Z4! S2 rimane in Z6 (seconda linea)
     if (mode === 'normal') {
+      // RP P1 Normal: S1 si sposta da Z2 a Z4, OPP si sposta da Z4 a Z2
       return {
-        zona4: team.roster.find(p => p.role === 'OPP') || null,
-        zona3: findByTacticalLabel(team, 'C1'),
-        zona2: findByTacticalLabel(team, 'S1'),
+        zona4: findByTacticalLabel(team, 'S1'), // S1 si sposta in Z4
+        zona3: findByTacticalLabel(team, 'C1'), // C1 rimane in Z3
+        zona2: team.roster.find(p => p.role === 'OPP') || null, // OPP si sposta in Z2
       };
     } else {
-      // special
+      // RP P1 Special: OPP rimane in Z4, S1 rimane in Z2
       return {
-        zona4: findByTacticalLabel(team, 'S1'),
-        zona3: findByTacticalLabel(team, 'C1'),
-        zona2: team.roster.find(p => p.role === 'OPP') || null,
+        zona4: team.roster.find(p => p.role === 'OPP') || null, // OPP rimane in Z4
+        zona3: findByTacticalLabel(team, 'C1'), // C1 rimane in Z3
+        zona2: findByTacticalLabel(team, 'S1'), // S1 rimane in Z2
       };
     }
   };
