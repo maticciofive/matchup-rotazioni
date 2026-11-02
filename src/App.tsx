@@ -465,6 +465,7 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
         const bpAssignment = bpA === 'BP' ? assignmentA : assignmentB;
         const rpMode = bpA === 'RP' ? modeA : modeB;
         const rpRot = bpA === 'RP' ? rotA : rotB;
+        const bpRot = bpA === 'BP' ? rotA : rotB;
 
         return (
           <div>
@@ -483,8 +484,8 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 {frontAttackZones.map((zone: Zone) => {
                   const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
-                  const omologo = getBlockerInZone(bpTeam, bpAssignment, omologoZone, 'BP');
-                  const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment);
+                  const omologo = getBlockerInZone(bpTeam, bpAssignment, omologoZone, 'BP', bpRot);
+                  const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment, bpRot);
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2">Z{zone}: {attacker ? formatPlayerCompact(attacker) : '—'}</td>
@@ -495,9 +496,14 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 })}
                 {backAttackZones.map((zone: Zone) => {
                   if (zone === 6) {
-                    // In posto 6, attaccano S1 e S2 (entrambi gli schiacciatori)
+                    // Attacco da posto 6: mostra tutti e 3 i muratori
                     const attackers = getAttackersInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
                     if (attackers.length === 0) return null;
+                    
+                    const defenderZ2 = getBlockerInZone(bpTeam, bpAssignment, 2, 'BP', bpRot);
+                    const defenderZ3 = getCenterBlockerInRotation(bpTeam, bpAssignment, bpRot);
+                    const defenderZ4 = getBlockerInZone(bpTeam, bpAssignment, 4, 'BP', bpRot);
+                    
                     return (
                       <tr key={zone} className="border-b bg-yellow-50">
                         <td className="border p-2">
@@ -507,8 +513,11 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                             </span>
                           ))} <span className="text-xs text-gray-500">(pipe)</span>
                         </td>
-                        <td className="border p-2 text-gray-400">—</td>
-                        <td className="border p-2 text-gray-400">—</td>
+                        <td className="border p-2">{defenderZ2 ? formatPlayerCompact(defenderZ2) : '—'}</td>
+                        <td className="border p-2">
+                          {defenderZ3 ? formatPlayerCompact(defenderZ3) : '—'}
+                          {defenderZ4 ? ` + ${formatPlayerCompact(defenderZ4)}` : ''}
+                        </td>
                       </tr>
                     );
                   } else {
@@ -537,6 +546,7 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
         const rpAssignment = bpA === 'RP' ? assignmentA : assignmentB;
         const bpMode = bpA === 'BP' ? modeA : modeB;
         const bpRot = bpA === 'BP' ? rotA : rotB;
+        const rpRot = bpA === 'RP' ? rotA : rotB;
 
         return (
           <div>
@@ -555,8 +565,8 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 {frontAttackZones.map((zone: Zone) => {
                   const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
                   const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
-                  const omologo = getBlockerInZone(rpTeam, rpAssignment, omologoZone, 'RP');
-                  const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment);
+                  const omologo = getBlockerInZone(rpTeam, rpAssignment, omologoZone, 'RP', rpRot);
+                  const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment, rpRot);
                   return (
                     <tr key={zone} className="border-b">
                       <td className="border p-2">Z{zone}: {attacker ? formatPlayerCompact(attacker) : '—'}</td>
@@ -567,9 +577,14 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                 })}
                 {backAttackZones.map((zone: Zone) => {
                   if (zone === 6) {
-                    // In posto 6, attaccano S1 e S2 (entrambi gli schiacciatori)
+                    // Attacco da posto 6: mostra tutti e 3 i muratori
                     const attackers = getAttackersInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
                     if (attackers.length === 0) return null;
+                    
+                    const defenderZ2 = getBlockerInZone(rpTeam, rpAssignment, 2, 'RP', rpRot);
+                    const defenderZ3 = getCenterBlockerInRotation(rpTeam, rpAssignment, rpRot);
+                    const defenderZ4 = getBlockerInZone(rpTeam, rpAssignment, 4, 'RP', rpRot);
+                    
                     return (
                       <tr key={zone} className="border-b bg-yellow-50">
                         <td className="border p-2">
@@ -579,8 +594,11 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                             </span>
                           ))} <span className="text-xs text-gray-500">(pipe)</span>
                         </td>
-                        <td className="border p-2 text-gray-400">—</td>
-                        <td className="border p-2 text-gray-400">—</td>
+                        <td className="border p-2">{defenderZ2 ? formatPlayerCompact(defenderZ2) : '—'}</td>
+                        <td className="border p-2">
+                          {defenderZ3 ? formatPlayerCompact(defenderZ3) : '—'}
+                          {defenderZ4 ? ` + ${formatPlayerCompact(defenderZ4)}` : ''}
+                        </td>
                       </tr>
                     );
                   } else {
