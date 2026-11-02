@@ -1188,8 +1188,19 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   const bpB = servingTeam === 'B' ? 'BP' : 'RP';
 
   // Helper: trova il giocatore per ruolo e label tattica
+  // REGOLA: Le etichette tattiche (S1, S2, C1, C2) identificano UNIVOCAMENTE il giocatore
   const findByRole = (team: Team, role: string, label?: string): Player | null => {
-    return team.roster.find(p => p.role === role && (!label || p.tacticalLabel === label)) || null;
+    if (label) {
+      // Cerca giocatore con ruolo E label tattica specifica
+      return team.roster.find(p => p.role === role && p.tacticalLabel === label) || null;
+    }
+    // Cerca giocatore con solo ruolo (senza label)
+    return team.roster.find(p => p.role === role) || null;
+  };
+
+  // Helper: trova il giocatore per etichetta tattica (più preciso)
+  const findByTacticalLabel = (team: Team, label: string): Player | null => {
+    return team.roster.find(p => p.tacticalLabel === label) || null;
   };
 
   // Helper: trova il giocatore in una zona
@@ -1200,6 +1211,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   // Calcola attaccante in base a modalità e fase
   // REGOLA: In prima linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
   // In seconda linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
+  // REGOLA: Le etichette tattiche (S1, S2, C1, C2) identificano UNIVOCAMENTE il giocatore
   const getAttacker = (
     team: Team,
     assignment: ZoneAssignment,
@@ -1214,17 +1226,17 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     if (phase === 'RP') {
       if (zone === 4) {
         // S2 attacca da posto 4 (si sposta dalla seconda linea)
-        return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S2') || null;
+        return findByTacticalLabel(team, 'S2');
       }
       if (zone === 3) {
         // C1 attacca da posto 3 (centrale)
-        return team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null;
+        return findByTacticalLabel(team, 'C1');
       }
       if (zone === 2) {
         // In normale: S1 attacca da posto 2
         // In special: OPP attacca da posto 2
         if (mode === 'normal') {
-          return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null;
+          return findByTacticalLabel(team, 'S1');
         } else {
           return team.roster.find(p => p.role === 'OPP') || null;
         }
@@ -1242,18 +1254,18 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
         if (mode === 'normal') {
           return team.roster.find(p => p.role === 'OPP') || null;
         } else {
-          return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null;
+          return findByTacticalLabel(team, 'S1');
         }
       }
       if (zone === 3) {
         // C1 attacca da posto 3 (centrale)
-        return team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null;
+        return findByTacticalLabel(team, 'C1');
       }
       if (zone === 2) {
         // In normale: S1 attacca da posto 2
         // In special: OPP attacca da posto 2
         if (mode === 'normal') {
-          return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null;
+          return findByTacticalLabel(team, 'S1');
         } else {
           return team.roster.find(p => p.role === 'OPP') || null;
         }
@@ -1295,6 +1307,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
 
   // Ottieni il terzetto di prima linea per il muro a 3
   // REGOLA: In prima linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
+  // REGOLA: Le etichette tattiche (S1, S2, C1, C2) identificano UNIVOCAMENTE il giocatore
   const getTripleBlock = (
     team: Team,
     assignment: ZoneAssignment,
@@ -1309,15 +1322,15 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     if (phase === 'RP') {
       if (mode === 'normal') {
         return {
-          zona4: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S2') || null,
-          zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
-          zona2: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null,
+          zona4: findByTacticalLabel(team, 'S2'),
+          zona3: findByTacticalLabel(team, 'C1'),
+          zona2: findByTacticalLabel(team, 'S1'),
         };
       } else {
         // special
         return {
-          zona4: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S2') || null,
-          zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
+          zona4: findByTacticalLabel(team, 'S2'),
+          zona3: findByTacticalLabel(team, 'C1'),
           zona2: team.roster.find(p => p.role === 'OPP') || null,
         };
       }
@@ -1330,14 +1343,14 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     if (mode === 'normal') {
       return {
         zona4: team.roster.find(p => p.role === 'OPP') || null,
-        zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
-        zona2: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null,
+        zona3: findByTacticalLabel(team, 'C1'),
+        zona2: findByTacticalLabel(team, 'S1'),
       };
     } else {
       // special
       return {
-        zona4: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null,
-        zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
+        zona4: findByTacticalLabel(team, 'S1'),
+        zona3: findByTacticalLabel(team, 'C1'),
         zona2: team.roster.find(p => p.role === 'OPP') || null,
       };
     }

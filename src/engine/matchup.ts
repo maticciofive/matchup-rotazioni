@@ -92,6 +92,7 @@ export function calculateMatchups(
 
 /**
  * Trova quale centrale è in prima linea in una specifica rotazione
+ * REGOLA: Le etichette tattiche (C1, C2) identificano UNIVOCAMENTE il giocatore
  * C2 è in prima linea in P2, P1, P6
  * C1 è in prima linea in P5, P4, P3
  */
@@ -100,9 +101,6 @@ export function getCenterBlockerInRotation(
   assignment: ZoneAssignment,
   rotation: RotationLabel
 ): Player | null {
-  // Trova tutti i centrali nel roster
-  const centers = team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
-  
   // Trova quale centrale è in prima linea (zone 2, 3, 4)
   const frontRowZones: Zone[] = [2, 3, 4];
   for (const zone of frontRowZones) {
@@ -113,7 +111,12 @@ export function getCenterBlockerInRotation(
     }
   }
   
+  // Fallback: cerca C1 per etichetta tattica
+  const c1 = team.roster.find(p => p.role === 'C' && p.tacticalLabel === 'C1');
+  if (c1) return c1;
+  
   // Fallback: ritorna il primo centrale
+  const centers = team.roster.filter(p => p.role === 'C' && p.id !== team.liberoId);
   return centers[0] || null;
 }
 
