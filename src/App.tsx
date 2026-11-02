@@ -46,7 +46,7 @@ export default function App() {
 
   const handleExport = () => {
     if (!data) return;
-    const json = exportToJSON(
+    const json = exportToJSON(data);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
