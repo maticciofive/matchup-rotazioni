@@ -1198,6 +1198,8 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   };
 
   // Calcola attaccante in base a modalità e fase
+  // REGOLA: In prima linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
+  // In seconda linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
   const getAttacker = (
     team: Team,
     assignment: ZoneAssignment,
@@ -1205,34 +1207,59 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     phase: 'BP' | 'RP',
     mode: AttackMode
   ): Player | null => {
+    // In RP, la disposizione tattica di attacco è SEMPRE:
+    // - Z4: S2 (che si sposta dalla seconda linea)
+    // - Z3: C1 (centrale in prima linea)
+    // - Z2: S1 (normale) o OPP (special)
     if (phase === 'RP') {
-      // In ricezione punto:
-      // Z4 = S2, Z3 = Centrale, Z2 = S1 o Opposto (dipende dalla modalità)
-      if (zone === 4) return findByRole(team, 'S', 'S2');
-      if (zone === 3) {
-        // Centrale: preferisci C1, poi C2
-        return findByRole(team, 'C', 'C1') || findByRole(team, 'C');
-      }
-      if (zone === 2) {
-        // In RP, Z2 dipende dalla modalità
-        if (mode === 'normal') return findByRole(team, 'S', 'S1');
-        return findByRole(team, 'OPP');
-      }
-    } else {
-      // In break point:
-      // Z4 = Opposto (normal) o S1 (special)
-      // Z3 = Centrale
-      // Z2 = S1 (normal) o Opposto (special)
       if (zone === 4) {
-        return mode === 'normal' ? findByRole(team, 'OPP') : findByRole(team, 'S', 'S1');
+        // S2 attacca da posto 4 (si sposta dalla seconda linea)
+        return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S2') || null;
       }
       if (zone === 3) {
-        return findByRole(team, 'C', 'C1') || findByRole(team, 'C');
+        // C1 attacca da posto 3 (centrale)
+        return team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null;
       }
       if (zone === 2) {
-        return mode === 'normal' ? findByRole(team, 'S', 'S1') : findByRole(team, 'OPP');
+        // In normale: S1 attacca da posto 2
+        // In special: OPP attacca da posto 2
+        if (mode === 'normal') {
+          return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null;
+        } else {
+          return team.roster.find(p => p.role === 'OPP') || null;
+        }
       }
     }
+    
+    // In BP, la disposizione tattica di attacco è:
+    // - Z4: OPP (normale) o S1 (special)
+    // - Z3: C1 (centrale)
+    // - Z2: S1 (normale) o OPP (special)
+    if (phase === 'BP') {
+      if (zone === 4) {
+        // In normale: OPP attacca da posto 4
+        // In special: S1 attacca da posto 4
+        if (mode === 'normal') {
+          return team.roster.find(p => p.role === 'OPP') || null;
+        } else {
+          return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null;
+        }
+      }
+      if (zone === 3) {
+        // C1 attacca da posto 3 (centrale)
+        return team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null;
+      }
+      if (zone === 2) {
+        // In normale: S1 attacca da posto 2
+        // In special: OPP attacca da posto 2
+        if (mode === 'normal') {
+          return team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null;
+        } else {
+          return team.roster.find(p => p.role === 'OPP') || null;
+        }
+      }
+    }
+    
     return playerInZone(team, assignment, zone);
   };
 
@@ -1252,6 +1279,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
 
   // Ottieni IL SOLO giocatore che fa muro in una specifica zona
   // In una data rotazione, c'è UN SOLO giocatore in ogni zona che mura
+  // REGOLA: Il giocatore è determinato dalla rotazione, non dal ruolo!
   const getBlockerForZone = (
     team: Team,
     blockZone: Zone,
@@ -1261,10 +1289,12 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     // IL SOLO giocatore che si trova in quella zona in questa rotazione
     const playerId = assignment[blockZone];
     const player = getPlayerById(team, playerId);
+    // Escludi il libero dal muro
     return player && player.role !== 'L' ? player : null;
   };
 
   // Ottieni il terzetto di prima linea per il muro a 3
+  // REGOLA: In prima linea c'è SEMPRE 1 schiacciatore + 1 centrale + 1 opposto/palleggiatore
   const getTripleBlock = (
     team: Team,
     assignment: ZoneAssignment,
@@ -1272,30 +1302,44 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     mode: AttackMode,
     rotation: RotationLabel
   ): { zona4: Player | null; zona3: Player | null; zona2: Player | null } => {
-    if (phase === 'BP') {
-      // In BP: posto 4 = S, posto 3 = C, posto 2 = OPP/P
-      return {
-        zona4: findByRole(team, 'S'),
-        zona3: findByRole(team, 'C', 'C1') || findByRole(team, 'C'),
-        zona2: findByRole(team, 'OPP') || findByRole(team, 'P'),
-      };
-    } else {
-      // In RP dipende dalla modalità
+    // In RP, la disposizione tattica è SEMPRE:
+    // - Z4: S2
+    // - Z3: C1
+    // - Z2: S1 (normale) o OPP (special)
+    if (phase === 'RP') {
       if (mode === 'normal') {
-        // P1 normale: posto 4 = S, posto 3 = C, posto 2 = S
         return {
-          zona4: findByRole(team, 'S', 'S2'),
-          zona3: findByRole(team, 'C', 'C1') || findByRole(team, 'C'),
-          zona2: findByRole(team, 'S', 'S1'),
+          zona4: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S2') || null,
+          zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
+          zona2: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null,
         };
       } else {
-        // P1 special: posto 4 = OPP, posto 3 = C, posto 2 = OPP/P
+        // special
         return {
-          zona4: findByRole(team, 'OPP'),
-          zona3: findByRole(team, 'C', 'C1') || findByRole(team, 'C'),
-          zona2: findByRole(team, 'OPP') || findByRole(team, 'P'),
+          zona4: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S2') || null,
+          zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
+          zona2: team.roster.find(p => p.role === 'OPP') || null,
         };
       }
+    }
+    
+    // In BP, la disposizione tattica è:
+    // - Z4: OPP (normale) o S1 (special)
+    // - Z3: C1
+    // - Z2: S1 (normale) o OPP (special)
+    if (mode === 'normal') {
+      return {
+        zona4: team.roster.find(p => p.role === 'OPP') || null,
+        zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
+        zona2: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null,
+      };
+    } else {
+      // special
+      return {
+        zona4: team.roster.find(p => p.role === 'S' && p.tacticalLabel === 'S1') || null,
+        zona3: team.roster.find(p => p.role === 'C' && (p.tacticalLabel === 'C1' || !p.tacticalLabel)) || null,
+        zona2: team.roster.find(p => p.role === 'OPP') || null,
+      };
     }
   };
 
