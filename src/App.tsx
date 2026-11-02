@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AnalysisData, Zone, ZoneAssignment, RotationLabel, ROTATION_ORDER, Player } from './types';
 import { getAssignmentForRotation, getPlayerById, formatPlayerCompact } from './engine/rotations';
 import { createExampleMatchupData, buildZoneAssignment, saveToLocalStorage, loadFromLocalStorage } from './engine/persistence';
-import { getAttackerInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from './engine/matchup';
+import { getAttackerInTacticalZone, getAttackersInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from './engine/matchup';
 import { OpposedCourtView } from './components/OpposedCourtView';
 
 type AttackMode = 'normal' | 'special';
@@ -494,15 +494,34 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                   );
                 })}
                 {backAttackZones.map((zone: Zone) => {
-                  const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
-                  if (!attacker) return null;
-                  return (
-                    <tr key={zone} className="border-b bg-yellow-50">
-                      <td className="border p-2">Z{zone}: {formatPlayerCompact(attacker)} <span className="text-xs text-gray-500">(pipe)</span></td>
-                      <td className="border p-2 text-gray-400">—</td>
-                      <td className="border p-2 text-gray-400">—</td>
-                    </tr>
-                  );
+                  if (zone === 6) {
+                    // In posto 6, attaccano S1 e S2 (entrambi gli schiacciatori)
+                    const attackers = getAttackersInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
+                    if (attackers.length === 0) return null;
+                    return (
+                      <tr key={zone} className="border-b bg-yellow-50">
+                        <td className="border p-2">
+                          Z{zone}: {attackers.map((a, idx) => (
+                            <span key={idx}>
+                              {formatPlayerCompact(a)}{idx < attackers.length - 1 ? ' + ' : ''}
+                            </span>
+                          ))} <span className="text-xs text-gray-500">(pipe)</span>
+                        </td>
+                        <td className="border p-2 text-gray-400">—</td>
+                        <td className="border p-2 text-gray-400">—</td>
+                      </tr>
+                    );
+                  } else {
+                    const attacker = getAttackerInTacticalZone(rpTeam, zone, 'RP', rpMode, rpRot);
+                    if (!attacker) return null;
+                    return (
+                      <tr key={zone} className="border-b bg-yellow-50">
+                        <td className="border p-2">Z{zone}: {formatPlayerCompact(attacker)} <span className="text-xs text-gray-500">(pipe)</span></td>
+                        <td className="border p-2 text-gray-400">—</td>
+                        <td className="border p-2 text-gray-400">—</td>
+                      </tr>
+                    );
+                  }
                 })}
               </tbody>
             </table>
@@ -547,15 +566,34 @@ function MatchupTablesForRotation({ teamA, teamB, assignmentA, assignmentB, bpA,
                   );
                 })}
                 {backAttackZones.map((zone: Zone) => {
-                  const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
-                  if (!attacker) return null;
-                  return (
-                    <tr key={zone} className="border-b bg-yellow-50">
-                      <td className="border p-2">Z{zone}: {formatPlayerCompact(attacker)} <span className="text-xs text-gray-500">(pipe)</span></td>
-                      <td className="border p-2 text-gray-400">—</td>
-                      <td className="border p-2 text-gray-400">—</td>
-                    </tr>
-                  );
+                  if (zone === 6) {
+                    // In posto 6, attaccano S1 e S2 (entrambi gli schiacciatori)
+                    const attackers = getAttackersInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
+                    if (attackers.length === 0) return null;
+                    return (
+                      <tr key={zone} className="border-b bg-yellow-50">
+                        <td className="border p-2">
+                          Z{zone}: {attackers.map((a, idx) => (
+                            <span key={idx}>
+                              {formatPlayerCompact(a)}{idx < attackers.length - 1 ? ' + ' : ''}
+                            </span>
+                          ))} <span className="text-xs text-gray-500">(pipe)</span>
+                        </td>
+                        <td className="border p-2 text-gray-400">—</td>
+                        <td className="border p-2 text-gray-400">—</td>
+                      </tr>
+                    );
+                  } else {
+                    const attacker = getAttackerInTacticalZone(bpTeam, zone, 'BP', bpMode, bpRot);
+                    if (!attacker) return null;
+                    return (
+                      <tr key={zone} className="border-b bg-yellow-50">
+                        <td className="border p-2">Z{zone}: {formatPlayerCompact(attacker)} <span className="text-xs text-gray-500">(pipe)</span></td>
+                        <td className="border p-2 text-gray-400">—</td>
+                        <td className="border p-2 text-gray-400">—</td>
+                      </tr>
+                    );
+                  }
                 })}
               </tbody>
             </table>

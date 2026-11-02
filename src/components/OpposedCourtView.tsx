@@ -1,6 +1,6 @@
 import { Team, ZoneAssignment, Zone, Player, RotationLabel } from '../types';
 import { getPlayerById, formatPlayerCompact } from '../engine/rotations';
-import { getAttackerInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from '../engine/matchup';
+import { getAttackersInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from '../engine/matchup';
 
 interface OpposedCourtViewProps {
   teamA: Team;
@@ -66,7 +66,7 @@ export function OpposedCourtView({
   ) => {
     const attacks: Array<{
       zone: Zone;
-      attacker: Player | null;
+      attackers: Player[];
       blockers: Player[];
       isPipe: boolean;
     }> = [];
@@ -74,9 +74,9 @@ export function OpposedCourtView({
     const attackZones: Zone[] = attackingPhase === 'BP' ? [4, 3, 2] : [4, 3, 2, 6, 1];
 
     for (const zone of attackZones) {
-      const attacker = getAttackerInTacticalZone(attackingTeam, zone, attackingPhase, attackingMode, attackingRot);
+      const attackers = getAttackersInTacticalZone(attackingTeam, zone, attackingPhase, attackingMode, attackingRot);
       
-      if (!attacker) continue;
+      if (attackers.length === 0) continue;
 
       const isPipe = zone === 6 || zone === 1;
       const blockers: Player[] = [];
@@ -93,7 +93,7 @@ export function OpposedCourtView({
 
       attacks.push({
         zone,
-        attacker,
+        attackers,
         blockers,
         isPipe,
       });
@@ -137,9 +137,21 @@ export function OpposedCourtView({
             })}
           </div>
 
+          {/* Posto 6 - Attacchi S1 + S2 */}
+          {attacksA.find(a => a.zone === 6) && (
+            <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded">
+              <div className="text-xs font-bold text-yellow-800 mb-1">Z6 - Attacchi Pipe:</div>
+              {attacksA.find(a => a.zone === 6)!.attackers.map((attacker, idx) => (
+                <div key={idx} className="text-xs text-yellow-700">
+                  🏐 {formatPlayerCompact(attacker)}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Seconda linea */}
           <div className="grid grid-cols-3 gap-1">
-            {([5, 6, 1] as Zone[]).map((zone) => {
+            {([5, 1] as Zone[]).map((zone) => {
               const player = getPlayerById(teamA, effectiveAssignmentA[zone]);
               const attack = attacksA.find(a => a.zone === zone);
               const isAttacking = attack && bpA === 'RP';
@@ -158,6 +170,13 @@ export function OpposedCourtView({
                 </div>
               );
             })}
+            {/* Posto 6 - Mostra i giocatori ma non gli attacchi (gestiti sopra) */}
+            <div className="text-center">
+              <div className="border rounded p-1 text-xs bg-white/60">
+                {getPlayerById(teamA, effectiveAssignmentA[6]) ? formatPlayerCompact(getPlayerById(teamA, effectiveAssignmentA[6])) : '—'}
+              </div>
+              <div className="text-gray-500 mt-1 text-xs">Z6</div>
+            </div>
           </div>
 
           {liberoSubstitutionA && teamA.liberoId && (
@@ -196,9 +215,21 @@ export function OpposedCourtView({
             })}
           </div>
 
+          {/* Posto 6 - Attacchi S1 + S2 */}
+          {attacksB.find(a => a.zone === 6) && (
+            <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded">
+              <div className="text-xs font-bold text-yellow-800 mb-1">Z6 - Attacchi Pipe:</div>
+              {attacksB.find(a => a.zone === 6)!.attackers.map((attacker, idx) => (
+                <div key={idx} className="text-xs text-yellow-700">
+                  🏐 {formatPlayerCompact(attacker)}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Seconda linea */}
           <div className="grid grid-cols-3 gap-1">
-            {([5, 6, 1] as Zone[]).map((zone) => {
+            {([5, 1] as Zone[]).map((zone) => {
               const player = getPlayerById(teamB, effectiveAssignmentB[zone]);
               const attack = attacksB.find(a => a.zone === zone);
               const isAttacking = attack && bpB === 'RP';
@@ -217,6 +248,13 @@ export function OpposedCourtView({
                 </div>
               );
             })}
+            {/* Posto 6 - Mostra i giocatori ma non gli attacchi (gestiti sopra) */}
+            <div className="text-center">
+              <div className="border rounded p-1 text-xs bg-white/60">
+                {getPlayerById(teamB, effectiveAssignmentB[6]) ? formatPlayerCompact(getPlayerById(teamB, effectiveAssignmentB[6])) : '—'}
+              </div>
+              <div className="text-gray-500 mt-1 text-xs">Z6</div>
+            </div>
           </div>
 
           {liberoSubstitutionB && teamB.liberoId && (
