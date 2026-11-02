@@ -1179,6 +1179,7 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
   const [modeA, setModeA] = useState<AttackMode>('normal');
   const [modeB, setModeB] = useState<AttackMode>('normal');
   const [evaluation, setEvaluation] = useState<'favorable' | 'balanced' | 'unfavorable' | 'not_evaluated'>('not_evaluated');
+  const [showTripleBlock, setShowTripleBlock] = useState(false);
 
   const assignmentA = getAssignmentForRotation(buildZoneAssignment(teamA.startingSix), selectedRotA);
   const assignmentB = getAssignmentForRotation(buildZoneAssignment(teamB.startingSix), selectedRotB);
@@ -1261,6 +1262,41 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
     const playerId = assignment[blockZone];
     const player = getPlayerById(team, playerId);
     return player && player.role !== 'L' ? player : null;
+  };
+
+  // Ottieni il terzetto di prima linea per il muro a 3
+  const getTripleBlock = (
+    team: Team,
+    assignment: ZoneAssignment,
+    phase: 'BP' | 'RP',
+    mode: AttackMode,
+    rotation: RotationLabel
+  ): { zona4: Player | null; zona3: Player | null; zona2: Player | null } => {
+    if (phase === 'BP') {
+      // In BP: posto 4 = S, posto 3 = C, posto 2 = OPP/P
+      return {
+        zona4: findByRole(team, 'S'),
+        zona3: findByRole(team, 'C', 'C1') || findByRole(team, 'C'),
+        zona2: findByRole(team, 'OPP') || findByRole(team, 'P'),
+      };
+    } else {
+      // In RP dipende dalla modalità
+      if (mode === 'normal') {
+        // P1 normale: posto 4 = S, posto 3 = C, posto 2 = S
+        return {
+          zona4: findByRole(team, 'S', 'S2'),
+          zona3: findByRole(team, 'C', 'C1') || findByRole(team, 'C'),
+          zona2: findByRole(team, 'S', 'S1'),
+        };
+      } else {
+        // P1 special: posto 4 = OPP, posto 3 = C, posto 2 = OPP/P
+        return {
+          zona4: findByRole(team, 'OPP'),
+          zona3: findByRole(team, 'C', 'C1') || findByRole(team, 'C'),
+          zona2: findByRole(team, 'OPP') || findByRole(team, 'P'),
+        };
+      }
+    }
   };
 
   const attackZones: Zone[] = [4, 3, 2];
@@ -1435,143 +1471,252 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           </div>
         </div>
 
-        {/* Attack A vs Block B - Tabella completa con DUE muratori */}
+        {/* OPZIONE MURO A 3 */}
         <div className="mb-6">
-          <h3 className="font-bold text-sm mb-3" style={{ color: teamA.color }}>
-            Attacco {teamA.name} → Muro {teamB.name}
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">Canale</th>
-                  <th className="border p-2 text-left">Attaccante</th>
-                  <th className="border p-2 text-left">Muratori (coppia)</th>
-                  <th className="border p-2 text-left">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attackZones.map(zone => {
-                  const attacker = getAttacker(teamA, assignmentA, zone, bpA, modeA);
-                  const blockZones = ATTACK_TO_BLOCK_ZONES[zone];
-                  
-                  // Escludi il Libero dai matchup
-                  if (isLibero(attacker)) {
-                    return null;
-                  }
-                  
-                  // Per ogni zona di muro, ottieni IL SOLO giocatore che mura
-                  const allBlockersByZone = blockZones.map(bz => ({
-                    zone: bz,
-                    players: (() => {
-                      const blocker = getBlockerForZone(teamB, bz, assignmentB);
-                      return blocker ? [blocker] : [];
-                    })()
-                  }));
-                  
-                  return (
-                    <tr key={zone} className="border-b">
-                      <td className="border p-2 font-mono">Zona {zone}</td>
-                      <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
-                      <td className="border p-2">
-                        {allBlockersByZone.map((blockerGroup, idx) => (
-                          <div key={idx} className="mb-1">
-                            <span className="text-xs text-gray-500">Z{blockerGroup.zone}: </span>
-                            {blockerGroup.players.length > 0 ? (
-                              blockerGroup.players.map((p: Player, pIdx: number) => (
-                                <span key={pIdx}>
-                                  {formatPlayerCompact(p)}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                            {idx < allBlockersByZone.length - 1 ? ' + ' : ''}
-                          </div>
-                        ))}
-                      </td>
-                      <td className="border p-2 text-gray-500">
-                        Attacco da Z{zone} → muro Z{blockZones.join(' + Z')} avversario
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-gray-500 mt-1 italic">
-            ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
-          </p>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              id="tripleBlock"
+              className="w-4 h-4"
+              checked={showTripleBlock}
+              onChange={(e) => setShowTripleBlock(e.target.checked)}
+            />
+            <span className="text-sm font-semibold">Mostra muro a 3 (terzetto di prima linea)</span>
+          </label>
         </div>
 
-        {/* Attack B vs Block A - Tabella completa con DUE muratori */}
-        <div className="mb-6">
-          <h3 className="font-bold text-sm mb-3" style={{ color: teamB.color }}>
-            Attacco {teamB.name} → Muro {teamA.name}
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">Canale</th>
-                  <th className="border p-2 text-left">Attaccante</th>
-                  <th className="border p-2 text-left">Muratori (coppia)</th>
-                  <th className="border p-2 text-left">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attackZones.map(zone => {
-                  const attacker = getAttacker(teamB, assignmentB, zone, bpB, modeB);
-                  const blockZones = ATTACK_TO_BLOCK_ZONES[zone];
-                  
-                  // Escludi il Libero dai matchup
-                  if (isLibero(attacker)) {
-                    return null;
-                  }
-                  
-                  // Per ogni zona di muro, ottieni IL SOLO giocatore che mura
-                  const allBlockersByZone = blockZones.map(bz => ({
-                    zone: bz,
-                    players: (() => {
-                      const blocker = getBlockerForZone(teamA, bz, assignmentA);
-                      return blocker ? [blocker] : [];
-                    })()
-                  }));
-                  
-                  return (
-                    <tr key={zone} className="border-b">
-                      <td className="border p-2 font-mono">Zona {zone}</td>
-                      <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
-                      <td className="border p-2">
-                        {allBlockersByZone.map((blockerGroup, idx) => (
-                          <div key={idx} className="mb-1">
-                            <span className="text-xs text-gray-500">Z{blockerGroup.zone}: </span>
-                            {blockerGroup.players.length > 0 ? (
-                              blockerGroup.players.map((p: Player, pIdx: number) => (
-                                <span key={pIdx}>
-                                  {formatPlayerCompact(p)}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                            {idx < allBlockersByZone.length - 1 ? ' + ' : ''}
-                          </div>
-                        ))}
-                      </td>
-                      <td className="border p-2 text-gray-500">
-                        Attacco da Z{zone} → muro Z{blockZones.join(' + Z')} avversario
-                      </td>
+        {/* PRIMA: Attacco squadra in RP contro Muro squadra in BP (ordine temporale) */}
+        {(() => {
+          const rpTeam = bpA === 'RP' ? teamA : teamB;
+          const bpTeam = bpA === 'BP' ? teamA : teamB;
+          const rpAssignment = bpA === 'RP' ? assignmentA : assignmentB;
+          const bpAssignment = bpA === 'BP' ? assignmentA : assignmentB;
+          const rpMode = bpA === 'RP' ? modeA : modeB;
+          const bpMode = bpA === 'BP' ? modeA : modeB;
+          const rpPhase: 'BP' | 'RP' = 'RP';
+          const bpPhase: 'BP' | 'BP' = 'BP';
+
+          return (
+            <div className="mb-6">
+              <h3 className="font-bold text-sm mb-3" style={{ color: rpTeam.color }}>
+                ⏱️ 1. Attacco {rpTeam.name} ({rpPhase}) → Muro {bpTeam.name} ({bpPhase})
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-2 text-left">Canale</th>
+                      <th className="border p-2 text-left">Attaccante</th>
+                      <th className="border p-2 text-left">Muratore Omologo</th>
+                      <th className="border p-2 text-left">Centrale</th>
+                      <th className="border p-2 text-left">Tipo Muro</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {attackZones.map(zone => {
+                      const attacker = getAttacker(rpTeam, rpAssignment, zone, rpPhase, rpMode);
+                      
+                      // Escludi il Libero dai matchup
+                      if (isLibero(attacker)) {
+                        return null;
+                      }
+                      
+                      // Determina le zone di muro
+                      let omologoZone: Zone;
+                      let centraleZone: Zone = 3;
+                      
+                      if (zone === 4) {
+                        omologoZone = 2;
+                      } else if (zone === 2) {
+                        omologoZone = 4;
+                      } else {
+                        omologoZone = 3;
+                        centraleZone = 3;
+                      }
+                      
+                      // Ottieni i muratori
+                      const omologo = getBlockerForZone(bpTeam, omologoZone, bpAssignment);
+                      const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment, selectedRotB);
+                      
+                      // Determina il tipo di muro
+                      const muroType = bpPhase === 'BP' ? 'MURO BP' : 'MURO BP TRANSIZIONE';
+                      
+                      return (
+                        <tr key={zone} className="border-b">
+                          <td className="border p-2 font-mono">Zona {zone}</td>
+                          <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
+                          <td className="border p-2">
+                            {omologo ? formatPlayerCompact(omologo) : '—'}
+                            <div className="text-xs text-gray-500">Z{omologoZone}</div>
+                          </td>
+                          <td className="border p-2">
+                            {centrale ? formatPlayerCompact(centrale) : '—'}
+                            <div className="text-xs text-gray-500">Z3</div>
+                          </td>
+                          <td className="border p-2">
+                            <span className="text-red-700 font-semibold">{muroType}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 italic">
+                ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
+              </p>
+            </div>
+          );
+        })()}
+
+        {/* SECONDA: Attacco squadra in BP contro Muro squadra in RP */}
+        {(() => {
+          const bpTeam = bpA === 'BP' ? teamA : teamB;
+          const rpTeam = bpA === 'RP' ? teamA : teamB;
+          const bpAssignment = bpA === 'BP' ? assignmentA : assignmentB;
+          const rpAssignment = bpA === 'RP' ? assignmentA : assignmentB;
+          const bpMode = bpA === 'BP' ? modeA : modeB;
+          const rpMode = bpA === 'RP' ? modeA : modeB;
+          const bpPhase: 'BP' | 'BP' = 'BP';
+          const rpPhase: 'BP' | 'RP' = 'RP';
+
+          return (
+            <div className="mb-6">
+              <h3 className="font-bold text-sm mb-3" style={{ color: bpTeam.color }}>
+                ⏱️ 2. Attacco {bpTeam.name} ({bpPhase}) → Muro {rpTeam.name} ({rpPhase})
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-2 text-left">Canale</th>
+                      <th className="border p-2 text-left">Attaccante</th>
+                      <th className="border p-2 text-left">Muratore Omologo</th>
+                      <th className="border p-2 text-left">Centrale</th>
+                      <th className="border p-2 text-left">Tipo Muro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attackZones.map(zone => {
+                      const attacker = getAttacker(bpTeam, bpAssignment, zone, bpPhase, bpMode);
+                      
+                      // Escludi il Libero dai matchup
+                      if (isLibero(attacker)) {
+                        return null;
+                      }
+                      
+                      // Determina le zone di muro
+                      let omologoZone: Zone;
+                      let centraleZone: Zone = 3;
+                      
+                      if (zone === 4) {
+                        omologoZone = 2;
+                      } else if (zone === 2) {
+                        omologoZone = 4;
+                      } else {
+                        omologoZone = 3;
+                        centraleZone = 3;
+                      }
+                      
+                      // Ottieni i muratori
+                      const omologo = getBlockerForZone(rpTeam, omologoZone, rpAssignment);
+                      const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment, selectedRotA);
+                      
+                      // Determina il tipo di muro
+                      const muroType = rpPhase === 'RP' ? 'MURO RP TRANSIZIONE' : 'MURO RP';
+                      
+                      return (
+                        <tr key={zone} className="border-b">
+                          <td className="border p-2 font-mono">Zona {zone}</td>
+                          <td className="border p-2">{attacker ? formatPlayerCompact(attacker) : 'Da configurare'}</td>
+                          <td className="border p-2">
+                            {omologo ? formatPlayerCompact(omologo) : '—'}
+                            <div className="text-xs text-gray-500">Z{omologoZone}</div>
+                          </td>
+                          <td className="border p-2">
+                            {centrale ? formatPlayerCompact(centrale) : '—'}
+                            <div className="text-xs text-gray-500">Z3</div>
+                          </td>
+                          <td className="border p-2">
+                            <span className="text-blue-700 font-semibold">{muroType}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 italic">
+                ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
+              </p>
+            </div>
+          );
+        })()}
+
+        {/* MURO A 3 - Terzetto di prima linea */}
+        {showTripleBlock && (
+          <div className="mb-6">
+            <h3 className="font-bold text-sm mb-3 text-gray-800">
+              🛡️ Muro a 3 - Terzetto di Prima Linea
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Muro a 3 Squadra A */}
+              <div className="border rounded-lg p-4" style={{ borderColor: teamA.color }}>
+                <h4 className="font-bold mb-2" style={{ color: teamA.color }}>
+                  {teamA.name} - Muro a 3
+                </h4>
+                {(() => {
+                  const tripleBlock = getTripleBlock(teamA, assignmentA, bpA, modeA, selectedRotA);
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Posto 4:</span>
+                        <span className="text-sm">{tripleBlock.zona4 ? formatPlayerCompact(tripleBlock.zona4) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Posto 3:</span>
+                        <span className="text-sm">{tripleBlock.zona3 ? formatPlayerCompact(tripleBlock.zona3) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Posto 2:</span>
+                        <span className="text-sm">{tripleBlock.zona2 ? formatPlayerCompact(tripleBlock.zona2) : '—'}</span>
+                      </div>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
+                })()}
+              </div>
+
+              {/* Muro a 3 Squadra B */}
+              <div className="border rounded-lg p-4" style={{ borderColor: teamB.color }}>
+                <h4 className="font-bold mb-2" style={{ color: teamB.color }}>
+                  {teamB.name} - Muro a 3
+                </h4>
+                {(() => {
+                  const tripleBlock = getTripleBlock(teamB, assignmentB, bpB, modeB, selectedRotB);
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Posto 4:</span>
+                        <span className="text-sm">{tripleBlock.zona4 ? formatPlayerCompact(tripleBlock.zona4) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Posto 3:</span>
+                        <span className="text-sm">{tripleBlock.zona3 ? formatPlayerCompact(tripleBlock.zona3) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Posto 2:</span>
+                        <span className="text-sm">{tripleBlock.zona2 ? formatPlayerCompact(tripleBlock.zona2) : '—'}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 italic">
+              Il muro a 3 mostra il terzetto di prima linea in base alla fase (BP/RP) e alla modalità (Normal/Special).
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mt-1 italic">
-            ⚠️ La corrispondenza geometrica è un riferimento. Non rappresenta la composizione effettiva del muro.
-          </p>
-        </div>
+        )}
 
         {/* Riepilogo completo con componente dedicato */}
         <div className="mb-6">
