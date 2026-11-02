@@ -157,9 +157,9 @@ export function createExampleMatchupData(): AnalysisData {
     initialRotation: 'P1',
   };
 
-  // BP layout: Z4=22(S), Z3=7(C), Z2=10(OPP), Z5=18(L), Z6=8(S), Z1=11(P)
+  // P1 layout: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
   // Index: 0=Z1, 1=Z2, 2=Z3, 3=Z4, 4=Z5, 5=Z6
-  teamA.startingSix = ['rt-11', 'rt-10', 'rt-7', 'rt-22', 'rt-18', 'rt-8'];
+  teamA.startingSix = ['rt-11', 'rt-22', 'rt-7', 'rt-10', 'rt-18', 'rt-8'];
 
   // TIRRENO (RP) - Squadra B
   const teamB: Team = {

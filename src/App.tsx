@@ -1550,6 +1550,8 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           const bpAssignment = bpA === 'BP' ? assignmentA : assignmentB;
           const rpMode = bpA === 'RP' ? modeA : modeB;
           const bpMode = bpA === 'BP' ? modeA : modeB;
+          const rpRotation = bpA === 'RP' ? selectedRotA : selectedRotB;
+          const bpRotation = bpA === 'BP' ? selectedRotA : selectedRotB;
           const rpPhase: 'BP' | 'RP' = 'RP';
           const bpPhase: 'BP' | 'BP' = 'BP';
 
@@ -1591,9 +1593,9 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                         centraleZone = 3;
                       }
                       
-                      // Ottieni i muratori
+                      // Ottieni i muratori - usa la rotazione corretta per la squadra che mura
                       const omologo = getBlockerForZone(bpTeam, omologoZone, bpAssignment);
-                      const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment, selectedRotB);
+                      const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment, bpRotation);
                       
                       // Determina il tipo di muro
                       const muroType = bpPhase === 'BP' ? 'MURO BP' : 'MURO BP TRANSIZIONE';
@@ -1634,6 +1636,8 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
           const rpAssignment = bpA === 'RP' ? assignmentA : assignmentB;
           const bpMode = bpA === 'BP' ? modeA : modeB;
           const rpMode = bpA === 'RP' ? modeA : modeB;
+          const bpRotation = bpA === 'BP' ? selectedRotA : selectedRotB;
+          const rpRotation = bpA === 'RP' ? selectedRotA : selectedRotB;
           const bpPhase: 'BP' | 'BP' = 'BP';
           const rpPhase: 'BP' | 'RP' = 'RP';
 
@@ -1675,9 +1679,9 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                         centraleZone = 3;
                       }
                       
-                      // Ottieni i muratori
+                      // Ottieni i muratori - usa la rotazione corretta per la squadra che mura
                       const omologo = getBlockerForZone(rpTeam, omologoZone, rpAssignment);
-                      const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment, selectedRotA);
+                      const centrale = getCenterBlockerInRotation(rpTeam, rpAssignment, rpRotation);
                       
                       // Determina il tipo di muro
                       const muroType = rpPhase === 'RP' ? 'MURO RP TRANSIZIONE' : 'MURO RP';
