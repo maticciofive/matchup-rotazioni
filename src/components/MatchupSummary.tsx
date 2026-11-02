@@ -26,15 +26,27 @@ export function MatchupSummary({
   phaseA,
   phaseB,
 }: MatchupSummaryProps) {
-  // Calcola i matchup completi per entrambi i versi
-  const matchupsAtoB = calculateCompleteMatchups(
-    { team: teamA, rotation: rotationA, phase: phaseA, assignment: assignmentA },
-    { team: teamB, rotation: rotationB, phase: phaseB, assignment: assignmentB }
+  // Determina quale squadra è in RP e quale in BP
+  const rpTeam = phaseA === 'RP' ? teamA : teamB;
+  const bpTeam = phaseA === 'BP' ? teamA : teamB;
+  const rpAssignment = phaseA === 'RP' ? assignmentA : assignmentB;
+  const bpAssignment = phaseA === 'BP' ? assignmentA : assignmentB;
+  const rpRotation = phaseA === 'RP' ? rotationA : rotationB;
+  const bpRotation = phaseA === 'BP' ? rotationA : rotationB;
+  const rpPhase = 'RP' as const;
+  const bpPhase = 'BP' as const;
+
+  // Calcola i matchup completi nell'ordine temporale corretto
+  // 1. PRIMA: Squadra in RP attacca contro muro squadra in BP
+  const matchupsRPtoBP = calculateCompleteMatchups(
+    { team: rpTeam, rotation: rpRotation, phase: rpPhase, assignment: rpAssignment },
+    { team: bpTeam, rotation: bpRotation, phase: bpPhase, assignment: bpAssignment }
   );
 
-  const matchupsBtoA = calculateCompleteMatchups(
-    { team: teamB, rotation: rotationB, phase: phaseB, assignment: assignmentB },
-    { team: teamA, rotation: rotationA, phase: phaseA, assignment: assignmentA }
+  // 2. SECONDA: Squadra in BP attacca contro muro squadra in RP
+  const matchupsBPtoRP = calculateCompleteMatchups(
+    { team: bpTeam, rotation: bpRotation, phase: bpPhase, assignment: bpAssignment },
+    { team: rpTeam, rotation: rpRotation, phase: rpPhase, assignment: rpAssignment }
   );
 
   return (
@@ -51,35 +63,35 @@ export function MatchupSummary({
         </p>
       </div>
 
-      {/* Matchup A → B */}
+      {/* PRIMA: Matchup squadra in RP → muro squadra in BP */}
       <div className="mb-8">
-        <h3 className="text-xl font-bold mb-4 text-center" style={{ color: teamA.color }}>
-          {teamA.name} in Attacco → {teamB.name} a Muro
+        <h3 className="text-xl font-bold mb-4 text-center" style={{ color: rpTeam.color }}>
+          ⏱️ 1. {rpTeam.name} in Attacco ({rpPhase}) → {bpTeam.name} a Muro ({bpPhase})
         </h3>
         <div className="space-y-4">
-          {matchupsAtoB.map(matchup => (
+          {matchupsRPtoBP.map(matchup => (
             <MatchupCard
               key={matchup.attackZone}
               matchup={matchup}
-              attackColor={teamA.color}
-              blockColor={teamB.color}
+              attackColor={rpTeam.color}
+              blockColor={bpTeam.color}
             />
           ))}
         </div>
       </div>
 
-      {/* Matchup B → A */}
+      {/* SECONDA: Matchup squadra in BP → muro squadra in RP */}
       <div>
-        <h3 className="text-xl font-bold mb-4 text-center" style={{ color: teamB.color }}>
-          {teamB.name} in Attacco → {teamA.name} a Muro
+        <h3 className="text-xl font-bold mb-4 text-center" style={{ color: bpTeam.color }}>
+          ⏱️ 2. {bpTeam.name} in Attacco ({bpPhase}) → {rpTeam.name} a Muro ({rpPhase})
         </h3>
         <div className="space-y-4">
-          {matchupsBtoA.map(matchup => (
+          {matchupsBPtoRP.map(matchup => (
             <MatchupCard
               key={matchup.attackZone}
               matchup={matchup}
-              attackColor={teamB.color}
-              blockColor={teamA.color}
+              attackColor={bpTeam.color}
+              blockColor={rpTeam.color}
             />
           ))}
         </div>
