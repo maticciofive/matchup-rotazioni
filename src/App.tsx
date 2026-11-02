@@ -3,6 +3,7 @@ import { AnalysisData, Zone, ZoneAssignment, RotationLabel, ROTATION_ORDER, Play
 import { getAssignmentForRotation, getPlayerById, formatPlayerCompact } from './engine/rotations';
 import { createExampleMatchupData, buildZoneAssignment, saveToLocalStorage, loadFromLocalStorage } from './engine/persistence';
 import { getAttackerInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from './engine/matchup';
+import { OpposedCourtView } from './components/OpposedCourtView';
 
 type AttackMode = 'normal' | 'special';
 type TabId = 'teams' | 'set' | 'matchup' | 'sequence' | 'print';
@@ -264,6 +265,8 @@ function SetView({ data, selectedRotA, selectedRotB, setSelectedRotA, setSelecte
 
 function MatchupView({ data, selectedRotA, selectedRotB, setSelectedRotA, setSelectedRotB, servingTeam, setServingTeam, modeA, setModeA, modeB, setModeB }: any) {
   const { teamA, teamB } = data;
+  const [liberoSubA, setLiberoSubA] = useState(false);
+  const [liberoSubB, setLiberoSubB] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -276,20 +279,42 @@ function MatchupView({ data, selectedRotA, selectedRotB, setSelectedRotA, setSel
             <select value={selectedRotA} onChange={(e: any) => setSelectedRotA(e.target.value)} className="w-full border rounded p-2 mb-2">
               {ROTATION_ORDER.map((r: RotationLabel) => <option key={r} value={r}>{r}</option>)}
             </select>
-            <select value={modeA} onChange={(e: any) => setModeA(e.target.value)} className="w-full border rounded p-2">
+            <select value={modeA} onChange={(e: any) => setModeA(e.target.value)} className="w-full border rounded p-2 mb-2">
               <option value="normal">P1 normale</option>
               <option value="special">P1 special</option>
             </select>
+            {teamA.liberoId && (
+              <label className="flex items-center gap-2 text-sm mt-2">
+                <input
+                  type="checkbox"
+                  checked={liberoSubA}
+                  onChange={(e) => setLiberoSubA(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span>🔄 Sostituzione libero per centrale in seconda linea</span>
+              </label>
+            )}
           </div>
           <div className="border rounded-lg p-4" style={{ borderColor: teamB.color }}>
             <h3 className="font-bold mb-3" style={{ color: teamB.color }}>{teamB.name}</h3>
             <select value={selectedRotB} onChange={(e: any) => setSelectedRotB(e.target.value)} className="w-full border rounded p-2 mb-2">
               {ROTATION_ORDER.map((r: RotationLabel) => <option key={r} value={r}>{r}</option>)}
             </select>
-            <select value={modeB} onChange={(e: any) => setModeB(e.target.value)} className="w-full border rounded p-2">
+            <select value={modeB} onChange={(e: any) => setModeB(e.target.value)} className="w-full border rounded p-2 mb-2">
               <option value="normal">P1 normale</option>
               <option value="special">P1 special</option>
             </select>
+            {teamB.liberoId && (
+              <label className="flex items-center gap-2 text-sm mt-2">
+                <input
+                  type="checkbox"
+                  checked={liberoSubB}
+                  onChange={(e) => setLiberoSubB(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span>🔄 Sostituzione libero per centrale in seconda linea</span>
+              </label>
+            )}
           </div>
         </div>
 
@@ -306,13 +331,13 @@ function MatchupView({ data, selectedRotA, selectedRotB, setSelectedRotA, setSel
         </div>
       </div>
 
-      {/* TUTTE LE 6 ROTAZIONI CON MATCHUP */}
-      <AllRotationsMatchup data={data} selectedRotA={selectedRotA} selectedRotB={selectedRotB} servingTeam={servingTeam} modeA={modeA} modeB={modeB} />
+      {/* 12 STATI CON CAMPI CONTRAPPOSTI */}
+      <AllRotationsMatchup data={data} selectedRotA={selectedRotA} selectedRotB={selectedRotB} servingTeam={servingTeam} modeA={modeA} modeB={modeB} liberoSubA={liberoSubA} liberoSubB={liberoSubB} />
     </div>
   );
 }
 
-function AllRotationsMatchup({ data, selectedRotA, selectedRotB, servingTeam, modeA, modeB }: any) {
+function AllRotationsMatchup({ data, selectedRotA, selectedRotB, servingTeam, modeA, modeB, liberoSubA, liberoSubB }: any) {
   const { teamA, teamB } = data;
 
   // Genera la sequenza di side-out partendo dalle rotazioni iniziali
@@ -363,12 +388,26 @@ function AllRotationsMatchup({ data, selectedRotA, selectedRotB, servingTeam, mo
               Stato {idx + 1}: {rotA} [{teamA.name}] {bpA} vs {rotB} [{teamB.name}] {bpB}
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <CourtDisplayCompact team={teamA} assignment={assignmentA} rotation={rotA} phase={bpA} />
-              <CourtDisplayCompact team={teamB} assignment={assignmentB} rotation={rotB} phase={bpB} />
-            </div>
+            {/* Campi contrapposti visivi */}
+            <OpposedCourtView
+              teamA={teamA}
+              teamB={teamB}
+              assignmentA={assignmentA}
+              assignmentB={assignmentB}
+              rotA={rotA}
+              rotB={rotB}
+              bpA={bpA}
+              bpB={bpB}
+              modeA={modeA}
+              modeB={modeB}
+              liberoSubstitutionA={liberoSubA}
+              liberoSubstitutionB={liberoSubB}
+            />
             
-            <MatchupTablesForRotation teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} bpA={bpA} bpB={bpB} modeA={modeA} modeB={modeB} rotA={rotA} rotB={rotB} />
+            {/* Tabelle matchup dettagliate */}
+            <div className="mt-4">
+              <MatchupTablesForRotation teamA={teamA} teamB={teamB} assignmentA={assignmentA} assignmentB={assignmentB} bpA={bpA} bpB={bpB} modeA={modeA} modeB={modeB} rotA={rotA} rotB={rotB} />
+            </div>
           </div>
         );
       })}
