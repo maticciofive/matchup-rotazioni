@@ -81,11 +81,20 @@ export function OpposedCourtView({
       const isPipe = zone === 6 || zone === 1;
       const blockers: Player[] = [];
 
-      if (!isPipe) {
-        // Calcola i muratori
+      if (zone === 6) {
+        // Attacco da posto 6: mostra tutti e 3 i muratori
+        const defenderZ2 = getBlockerInZone(defendingTeam, defendingAssignment, 2, defendingPhase, attackingRot);
+        const defenderZ3 = getCenterBlockerInRotation(defendingTeam, defendingAssignment, attackingRot);
+        const defenderZ4 = getBlockerInZone(defendingTeam, defendingAssignment, 4, defendingPhase, attackingRot);
+
+        if (defenderZ2) blockers.push(defenderZ2);
+        if (defenderZ3) blockers.push(defenderZ3);
+        if (defenderZ4) blockers.push(defenderZ4);
+      } else if (!isPipe) {
+        // Attacco da posto 4, 3, 2: mostra 2 muratori (omologo + centrale)
         const omologoZone = zone === 4 ? 2 : zone === 2 ? 4 : 3;
-        const omologo = getBlockerInZone(defendingTeam, defendingAssignment, omologoZone, defendingPhase);
-        const centrale = getCenterBlockerInRotation(defendingTeam, defendingAssignment);
+        const omologo = getBlockerInZone(defendingTeam, defendingAssignment, omologoZone, defendingPhase, attackingRot);
+        const centrale = getCenterBlockerInRotation(defendingTeam, defendingAssignment, attackingRot);
 
         if (omologo) blockers.push(omologo);
         if (centrale) blockers.push(centrale);
@@ -137,15 +146,23 @@ export function OpposedCourtView({
             })}
           </div>
 
-          {/* Posto 6 - Attacchi S1 + S2 */}
+          {/* Posto 6 - Attacchi Pipe con tutti i muratori */}
           {attacksA.find(a => a.zone === 6) && (
             <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded">
-              <div className="text-xs font-bold text-yellow-800 mb-1">Z6 - Attacchi Pipe:</div>
+              <div className="text-xs font-bold text-yellow-800 mb-1">Z6 - Attacco Pipe:</div>
               {attacksA.find(a => a.zone === 6)!.attackers.map((attacker, idx) => (
-                <div key={idx} className="text-xs text-yellow-700">
+                <div key={idx} className="text-xs text-yellow-700 mb-1">
                   🏐 {formatPlayerCompact(attacker)}
                 </div>
               ))}
+              <div className="text-xs text-gray-600 mt-2 border-t pt-1">
+                <div className="font-semibold mb-1">vs Muro ({teamB.name}):</div>
+                {attacksA.find(a => a.zone === 6)!.blockers.map((blocker, idx) => (
+                  <div key={idx} className="ml-2">
+                    • {formatPlayerCompact(blocker)}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -215,15 +232,23 @@ export function OpposedCourtView({
             })}
           </div>
 
-          {/* Posto 6 - Attacchi S1 + S2 */}
+          {/* Posto 6 - Attacchi Pipe con tutti i muratori */}
           {attacksB.find(a => a.zone === 6) && (
             <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded">
-              <div className="text-xs font-bold text-yellow-800 mb-1">Z6 - Attacchi Pipe:</div>
+              <div className="text-xs font-bold text-yellow-800 mb-1">Z6 - Attacco Pipe:</div>
               {attacksB.find(a => a.zone === 6)!.attackers.map((attacker, idx) => (
-                <div key={idx} className="text-xs text-yellow-700">
+                <div key={idx} className="text-xs text-yellow-700 mb-1">
                   🏐 {formatPlayerCompact(attacker)}
                 </div>
               ))}
+              <div className="text-xs text-gray-600 mt-2 border-t pt-1">
+                <div className="font-semibold mb-1">vs Muro ({teamA.name}):</div>
+                {attacksB.find(a => a.zone === 6)!.blockers.map((blocker, idx) => (
+                  <div key={idx} className="ml-2">
+                    • {formatPlayerCompact(blocker)}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

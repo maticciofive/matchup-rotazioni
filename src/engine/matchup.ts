@@ -186,13 +186,20 @@ export function getAttackersInTacticalZone(
  * - C (in Z3 nella rotazione) → mura in Z3
  * 
  * In RP: i giocatori murano nella loro posizione di rotazione
+ * 
+ * Il centrale che mura dipende dalla rotazione:
+ * - C1 mura in: P5, P4, P3
+ * - C2 mura in: P2, P1, P6
  */
 export function getBlockerInZone(
   team: Team,
   assignment: ZoneAssignment,
   zone: Zone,
-  phase: 'BP' | 'RP'
+  phase: 'BP' | 'RP',
+  rotation?: RotationLabel
 ): Player | null {
+  const rot = rotation || 'P1';
+  
   if (phase === 'BP') {
     // In BP, i giocatori si spostano per murare
     if (zone === 2) {
@@ -200,8 +207,12 @@ export function getBlockerInZone(
       return team.roster.find(p => p.role === 'OPP') || null;
     }
     if (zone === 3) {
-      // C mura in Z3 (rimane in Z3)
-      return getPlayerByTacticalLabel(team, 'C1');
+      // Il centrale che mura dipende dalla rotazione
+      if (rot === 'P5' || rot === 'P4' || rot === 'P3') {
+        return getPlayerByTacticalLabel(team, 'C1');
+      } else {
+        return getPlayerByTacticalLabel(team, 'C2');
+      }
     }
     if (zone === 4) {
       // S1 mura in Z4 (si sposta da Z2)
@@ -218,12 +229,28 @@ export function getBlockerInZone(
 }
 
 /**
- * Trova il centrale in prima linea
+ * Trova il centrale in prima linea in base alla rotazione
+ * - C1 in prima linea in: P5, P4, P3
+ * - C2 in prima linea in: P2, P1, P6
  */
 export function getCenterBlockerInRotation(
   team: Team,
-  assignment: ZoneAssignment
+  assignment: ZoneAssignment,
+  rotation?: RotationLabel
 ): Player | null {
+  const rot = rotation || 'P1';
+  
+  // C1 in prima linea in: P5, P4, P3
+  if (rot === 'P5' || rot === 'P4' || rot === 'P3') {
+    return getPlayerByTacticalLabel(team, 'C1');
+  }
+  
+  // C2 in prima linea in: P2, P1, P6
+  if (rot === 'P2' || rot === 'P1' || rot === 'P6') {
+    return getPlayerByTacticalLabel(team, 'C2');
+  }
+  
+  // Fallback: cerca il centrale in prima linea
   const frontRowZones: Zone[] = [2, 3, 4];
   for (const zone of frontRowZones) {
     const playerId = assignment[zone];
