@@ -103,6 +103,7 @@ export function createExampleMatchupData(): AnalysisData {
     teamA,
     teamB,
     setConfig,
+    simulation: null,
   };
 }
 
@@ -115,4 +116,29 @@ export function buildZoneAssignment(startingSix: (string | null)[]): Record<numb
     5: startingSix[4] ?? null,
     6: startingSix[5] ?? null,
   };
+}
+
+export function exportToJSON( AnalysisData): string {
+  return JSON.stringify(data, null, 2);
+}
+
+export function importFromJSON(json: string): AnalysisData | null {
+  try {
+    const imported = JSON.parse(json) as AnalysisData;
+    if (!imported.version || !imported.teamA || !imported.teamB || !imported.setConfig) {
+      throw new Error('File JSON non valido');
+    }
+    return imported;
+  } catch (e) {
+    console.error('Errore importazione:', e);
+    return null;
+  }
+}
+
+export function createDemoData(): AnalysisData {
+  return createExampleMatchupData();
+}
+
+export function zoneAssignmentToArray(assignment: Record<number, string | null>): (string | null)[] {
+  return [assignment[1], assignment[2], assignment[3], assignment[4], assignment[5], assignment[6]];
 }
