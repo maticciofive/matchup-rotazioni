@@ -1567,7 +1567,6 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                       
                       // Determina le zone di muro
                       let omologoZone: Zone;
-                      let centraleZone: Zone = 3;
                       
                       if (zone === 4) {
                         omologoZone = 2;
@@ -1575,10 +1574,10 @@ function MatchupView({ data, setData }: { data: AnalysisData; setData: (d: Analy
                         omologoZone = 4;
                       } else {
                         omologoZone = 3;
-                        centraleZone = 3;
                       }
                       
                       // Ottieni i muratori - usa la rotazione corretta per la squadra che mura
+                      // REGOLA: Il muratore è chi si trova in quella zona nella rotazione REALE
                       const omologo = getBlockerForZone(bpTeam, omologoZone, bpAssignment);
                       const centrale = getCenterBlockerInRotation(bpTeam, bpAssignment, bpRotation);
                       
