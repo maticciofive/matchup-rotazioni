@@ -1851,18 +1851,19 @@ function OpposedLineups({
   // Squadra B (destra): vista dal proprio fondo campo verso la rete
   // Le prime linee sono contro (verso il centro)
   
-  // REGOLA: Mostra SEMPRE l'attaccante dalla logica tattica (sia in BP che in RP)
-  // La logica tattica determina chi attacca in base alla fase e alla modalità
+  // REGOLA FONDAMENTALE: Mostrare la DISPOSIZIONE DI ROTAZIONE REALE
+  // NON la disposizione tattica!
+  // La disposizione di rotazione è chi sta DOVE in campo durante la rotazione
   const frontA = getFrontRowZones().map(z => ({
     zone: z,
-    player: getPlayerById(teamA, assignmentA[z]),
-    attacker: getAttacker(teamA, assignmentA, z, phaseA, modeA),
+    player: getPlayerById(teamA, assignmentA[z]), // Chi sta REALMENTE in questa zona
+    attacker: null, // Non mostrare l'attaccante qui, solo la rotazione
   }));
   
   const frontB = getFrontRowZones().map(z => ({
     zone: z,
-    player: getPlayerById(teamB, assignmentB[z]),
-    attacker: getAttacker(teamB, assignmentB, z, phaseB, modeB),
+    player: getPlayerById(teamB, assignmentB[z]), // Chi sta REALMENTE in questa zona
+    attacker: null, // Non mostrare l'attaccante qui, solo la rotazione
   }));
 
   const backA = getBackRowZones().map(z => ({
@@ -1884,18 +1885,19 @@ function OpposedLineups({
           <div className="text-center font-bold mb-2" style={{ color: teamA.color }}>
             {teamA.name} — {phaseA}
           </div>
-          <div className="text-xs text-gray-500 text-center mb-1">Prima linea (attacco)</div>
+          <div className="text-xs text-gray-500 text-center mb-1 font-semibold">DISPOSIZIONE DI ROTAZIONE</div>
+          <div className="text-xs text-gray-500 text-center mb-1">Prima linea (zone 2-3-4)</div>
           <div className="space-y-1">
-            {frontA.map(({ zone, player, attacker }) => (
+            {frontA.map(({ zone, player }) => (
               <div key={zone} className="flex justify-between items-center bg-white rounded px-2 py-1 text-xs border">
                 <span className="text-gray-400 font-mono">Z{zone}</span>
                 <span className="font-medium">
-                  {attacker ? `⚡ ${formatPlayerCompact(attacker)}` : player ? formatPlayerCompact(player) : '—'}
+                  {player ? formatPlayerCompact(player) : '—'}
                 </span>
               </div>
             ))}
           </div>
-          <div className="text-xs text-gray-500 text-center mt-2 mb-1">Seconda linea</div>
+          <div className="text-xs text-gray-500 text-center mt-2 mb-1">Seconda linea (zone 1-5-6)</div>
           <div className="space-y-1">
             {backA.map(({ zone, player }) => (
               <div key={zone} className="flex justify-between items-center bg-white/60 rounded px-2 py-1 text-xs border border-dashed">
@@ -1911,18 +1913,19 @@ function OpposedLineups({
           <div className="text-center font-bold mb-2" style={{ color: teamB.color }}>
             {teamB.name} — {phaseB}
           </div>
-          <div className="text-xs text-gray-500 text-center mb-1">Prima linea (attacco)</div>
+          <div className="text-xs text-gray-500 text-center mb-1 font-semibold">DISPOSIZIONE DI ROTAZIONE</div>
+          <div className="text-xs text-gray-500 text-center mb-1">Prima linea (zone 2-3-4)</div>
           <div className="space-y-1">
-            {frontB.map(({ zone, player, attacker }) => (
+            {frontB.map(({ zone, player }) => (
               <div key={zone} className="flex justify-between items-center bg-white rounded px-2 py-1 text-xs border">
                 <span className="font-medium">
-                  {attacker ? `⚡ ${formatPlayerCompact(attacker)}` : player ? formatPlayerCompact(player) : '—'}
+                  {player ? formatPlayerCompact(player) : '—'}
                 </span>
                 <span className="text-gray-400 font-mono">Z{zone}</span>
               </div>
             ))}
           </div>
-          <div className="text-xs text-gray-500 text-center mt-2 mb-1">Seconda linea</div>
+          <div className="text-xs text-gray-500 text-center mt-2 mb-1">Seconda linea (zone 1-5-6)</div>
           <div className="space-y-1">
             {backB.map(({ zone, player }) => (
               <div key={zone} className="flex justify-between items-center bg-white/60 rounded px-2 py-1 text-xs border border-dashed">

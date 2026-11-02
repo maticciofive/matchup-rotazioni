@@ -1,6 +1,20 @@
 import { Player, Zone, ZoneAssignment, Team, TeamRotation, Matchup, RotationLabel } from '../types';
 
 /**
+ * REGOLA FONDAMENTALE: Separare DISPOSIZIONE DI ROTAZIONE da DISPOSIZIONE TATTICA
+ * 
+ * DISPOSIZIONE DI ROTAZIONE: Chi sta dove in campo durante la rotazione
+ * - P1: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
+ * - Questa è la disposizione REALE che si vede nel campo
+ * 
+ * DISPOSIZIONE TATTICA: Chi attacca dopo la transizione
+ * - In RP: Z4=S2 (si sposta), Z3=C1, Z2=S1 o OPP
+ * - Questa è la disposizione tattica di attacco
+ * 
+ * NON CONFONDERE LE DUE COSE!
+ */
+
+/**
  * Regola geometrica della pallavolo:
  * - Attacco da Z4 → Muro di Z2 + Z3 (centro)
  * - Attacco da Z3 → Muro di Z3 (centro)
@@ -18,6 +32,35 @@ export const ATTACK_TO_BLOCK_ZONES: Record<Zone, Zone[]> = {
 };
 
 /**
+ * DISPOSIZIONE DI ROTAZIONE P1
+ * Questa è la disposizione REALE che si vede nel campo
+ */
+export const P1_ROTATION_LAYOUT = {
+  1: 'P',   // Palleggiatore
+  2: 'S1',  // Schiacciatore 1
+  3: 'C1',  // Centrale 1
+  4: 'OPP', // Opposto
+  5: 'C2',  // Centrale 2
+  6: 'S2',  // Schiacciatore 2
+};
+
+/**
+ * Prima linea in P1: zone 2, 3, 4
+ * - Z2: S1
+ * - Z3: C1
+ * - Z4: OPP
+ */
+export const P1_FRONT_LINE = [2, 3, 4];
+
+/**
+ * Seconda linea in P1: zone 1, 5, 6
+ * - Z1: P
+ * - Z5: C2
+ * - Z6: S2
+ */
+export const P1_BACK_LINE = [1, 5, 6];
+
+/**
  * Mappatura legacy per compatibilità (solo il muratore principale)
  */
 export const ATTACK_TO_BLOCK_ZONE: Partial<Record<Zone, Zone>> = {
@@ -32,6 +75,131 @@ export const ATTACK_TO_BLOCK_ZONE: Partial<Record<Zone, Zone>> = {
 export function getPlayerById(team: Team, id: string | null): Player | null {
   if (!id) return null;
   return team.roster.find(p => p.id === id) || null;
+}
+
+/**
+ * Trova un giocatore per etichetta tattica (S1, S2, C1, C2, OPP, P)
+ * REGOLA: Le etichette tattiche identificano UNIVOCAMENTE il giocatore
+ */
+export function getPlayerByTacticalLabel(team: Team, label: string): Player | null {
+  return team.roster.find(p => p.tacticalLabel === label) || null;
+}
+
+/**
+ * DISPOSIZIONE DI ROTAZIONE REALE
+ * Restituisce il giocatore che si trova in una zona specifica in base alla rotazione
+ * QUESTA È LA DISPOSIZIONE CHE SI VEDE NEL CAMPO!
+ * 
+ * @param team - Squadra
+ * @param assignment - Assegnazione delle zone per la rotazione corrente
+ * @param zone - Zona da verificare
+ * @returns Giocatore che si trova in quella zona nella rotazione REALE
+ */
+export function getPlayerInRotationZone(
+  team: Team,
+  assignment: ZoneAssignment,
+  zone: Zone
+): Player | null {
+  const playerId = assignment[zone];
+  return getPlayerById(team, playerId);
+}
+
+/**
+ * DISPOSIZIONE TATTICA DI ATTACCO
+ * Restituisce il giocatore che ATTACCA da una zona specifica in base alla fase e modalità
+ * QUESTA È LA DISPOSIZIONE TATTICA, NON QUELLA DI ROTAZIONE!
+ * 
+ * @param team - Squadra
+ * @param zone - Zona da cui attacca
+ * @param phase - Fase di gioco (BP o RP)
+ * @param mode - Modalità di attacco (normal o special)
+ * @returns Giocatore che ATTACCA da quella zona
+ */
+export function getAttackerInTacticalZone(
+  team: Team,
+  zone: Zone,
+  phase: 'BP' | 'RP',
+  mode: 'normal' | 'special'
+): Player | null {
+  // In RP, la disposizione tattica di attacco è SEMPRE:
+  // - Z4: S2 (si sposta dalla seconda linea)
+  // - Z3: C1 (centrale)
+  // - Z2: S1 (normal) o OPP (special)
+  if (phase === 'RP') {
+    if (zone === 4) {
+      return getPlayerByTacticalLabel(team, 'S2');
+    }
+    if (zone === 3) {
+      return getPlayerByTacticalLabel(team, 'C1');
+    }
+    if (zone === 2) {
+      if (mode === 'normal') {
+        return getPlayerByTacticalLabel(team, 'S1');
+      } else {
+        return team.roster.find(p => p.role === 'OPP') || null;
+      }
+    }
+  }
+  
+  // In BP, la disposizione tattica di attacco è:
+  // - Z4: OPP (normal) o S1 (special)
+  // - Z3: C1 (centrale)
+  // - Z2: S1 (normal) o OPP (special)
+  if (phase === 'BP') {
+    if (zone === 4) {
+      if (mode === 'normal') {
+        return team.roster.find(p => p.role === 'OPP') || null;
+      } else {
+        return getPlayerByTacticalLabel(team, 'S1');
+      }
+    }
+    if (zone === 3) {
+      return getPlayerByTacticalLabel(team, 'C1');
+    }
+    if (zone === 2) {
+      if (mode === 'normal') {
+        return getPlayerByTacticalLabel(team, 'S1');
+      } else {
+        return team.roster.find(p => p.role === 'OPP') || null;
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Verifica se un giocatore è in prima linea in una rotazione specifica
+ * 
+ * @param team - Squadra
+ * @param assignment - Assegnazione delle zone per la rotazione corrente
+ * @param playerId - ID del giocatore da verificare
+ * @returns true se il giocatore è in prima linea (zone 2, 3, 4)
+ */
+export function isInFrontLine(
+  team: Team,
+  assignment: ZoneAssignment,
+  playerId: string
+): boolean {
+  const frontLineZones: Zone[] = [2, 3, 4];
+  return frontLineZones.some(zone => assignment[zone] === playerId);
+}
+
+/**
+ * Verifica se un giocatore è in seconda linea in una rotazione specifica
+ * 
+ * @param team - Squadra
+ * @param assignment - Assegnazione delle zone per la rotazione corrente
+ * @param playerId - ID del giocatore da verificare
+ * @returns true se il giocatore è in seconda linea (zone 1, 5, 6)
+ */
+export function isInBackLine(
+  team: Team,
+  assignment: ZoneAssignment,
+  playerId: string
+): boolean {
+  const backLineZones: Zone[] = [1, 5, 6];
+  return backLineZones.some(zone => assignment[zone] === playerId);
 }
 
 /**

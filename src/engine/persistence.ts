@@ -181,7 +181,15 @@ export function createExampleMatchupData(): AnalysisData {
   };
 
   // P1 layout: Z1=P, Z2=S1, Z3=C1, Z4=OPP, Z5=C2, Z6=S2
+  // Index: 0=Z1, 1=Z2, 2=Z3, 3=Z4, 4=Z5, 5=Z6
+  // Questa è la DISPOSIZIONE DI ROTAZIONE REALE, non tattica!
   teamB.startingSix = ['t-4', 't-6', 't-10', 't-7', 't-15', 't-8'];
+  // Z1: Menna (P)
+  // Z2: Madonna (S1) ← PRIMA LINEA
+  // Z3: Fastoso (C1) ← PRIMA LINEA
+  // Z4: Leone (OPP) ← PRIMA LINEA
+  // Z5: Piccolo (C2) ← SECONDA LINEA
+  // Z6: Auriemma (S2) ← SECONDA LINEA
 
   const setConfig: SetConfig = {
     setName: 'Set 1',
