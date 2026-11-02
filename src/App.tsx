@@ -4,6 +4,7 @@ import { getAssignmentForRotation, getPlayerById, formatPlayerCompact } from './
 import { createExampleMatchupData, buildZoneAssignment, saveToLocalStorage, loadFromLocalStorage } from './engine/persistence';
 import { getAttackerInTacticalZone, getAttackersInTacticalZone, getBlockerInZone, getCenterBlockerInRotation } from './engine/matchup';
 import { OpposedCourtView } from './components/OpposedCourtView';
+import { SummaryView } from './components/SummaryView';
 
 type AttackMode = 'normal' | 'special';
 type TabId = 'teams' | 'set' | 'matchup' | 'sequence' | 'print';
@@ -403,6 +404,22 @@ function AllRotationsMatchup({ data, selectedRotA, selectedRotB, servingTeam, mo
               liberoSubstitutionA={liberoSubA}
               liberoSubstitutionB={liberoSubB}
             />
+            
+            {/* Riepilogo compatto */}
+            <div className="mt-4">
+              <SummaryView
+                teamA={teamA}
+                teamB={teamB}
+                assignmentA={assignmentA}
+                assignmentB={assignmentB}
+                rotA={rotA}
+                rotB={rotB}
+                bpA={bpA}
+                bpB={bpB}
+                modeA={modeA}
+                modeB={modeB}
+              />
+            </div>
             
             {/* Tabelle matchup dettagliate */}
             <div className="mt-4">
